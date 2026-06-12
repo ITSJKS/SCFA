@@ -1,0 +1,337 @@
+import os
+import sys
+import json
+import argparse
+import http.server
+import socketserver
+from datetime import datetime
+from urllib.parse import urlparse, parse_qs
+
+# Add project root to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src import parser, analyzer, llm_client
+
+DEFAULT_REPORT_DIR = "reports"
+DEFAULT_SUBMISSIONS_DIR = "reports/correct_submissions"
+
+def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, contest_name=None):
+    print(f"🚀 Starting analysis for submissions file: {file_path}")
+    print(f"Dry run: {dry_run}")
+    if student_limit:
+        print(f"Student limit: {student_limit} (AI feedback will only run for first {student_limit} students)")
+
+    # 1. Load problems metadata
+    problems_metadata = parser.load_problems_metadata()
+    print(f"Loaded {len(problems_metadata)} problem metadata entries.")
+
+    # 2. Parse and clean raw JSON
+    try:
+        submissions = parser.parse_submissions_file(file_path, problems_metadata)
+    except Exception as e:
+        print(f"❌ Error parsing submissions file: {e}")
+        raise e
+    print(f"Parsed {len(submissions)} raw submission records.")
+
+    # Determine folders
+    filename_base = os.path.splitext(os.path.basename(file_path))[0]
+    contest_key = "".join(c for c in filename_base if c.isalnum() or c in ('-', '_')).strip()
+    
+    if not contest_name:
+        contest_name = contest_key.replace('_', ' ').replace('-', ' ').strip()
+
+    if output_dir is None:
+        output_dir = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key)
+        
+    submissions_dir = os.path.join(output_dir, "correct_submissions")
+
+    # 3. Export successful submissions to python files
+    print("Saving successful student submissions as .py files...")
+    exp_count, exp_paths = analyzer.export_correct_submissions(submissions, submissions_dir)
+    print(f"Exported {exp_count} successful source code files to '{submissions_dir}'.")
+
+    # 4. Group data by student and problem
+    student_groups, problem_groups = parser.group_data(submissions, problems_metadata)
+    print(f"Found {len(student_groups)} unique students and {len(problem_groups)} unique questions.")
+
+    # 5. Process problem-wise metrics
+    problems_summary = {}
+    for qid, p_data in problem_groups.items():
+        p_subs = p_data["submissions"]
+        total_p_attempts = len(p_subs)
+        unique_students = len(set(s["user_id"] for s in p_subs))
+        passing_subs = [s for s in p_subs if s["all_test_cases_passing"]]
+        passed_students = len(set(s["user_id"] for s in passing_subs))
+        
+        # Calculate success metrics
+        success_rate = (passed_students / unique_students * 100) if unique_students > 0 else 0.0
+        avg_attempts_to_pass = 0
+        if passed_students > 0:
+            # For students who passed, count their attempts up to their first passing submission
+            student_attempts_count = []
+            for uid in set(s["user_id"] for s in passing_subs):
+                student_subs = [s for s in p_subs if s["user_id"] == uid]
+                # count submissions until the first passing one
+                attempts = 0
+                for s in student_subs:
+                    attempts += 1
+                    if s["all_test_cases_passing"]:
+                        break
+                student_attempts_count.append(attempts)
+            avg_attempts_to_pass = sum(student_attempts_count) / len(student_attempts_count)
+
+        # Count status distribution
+        status_counts = {}
+        for s in p_subs:
+            s_name = analyzer.get_status_name(s["status"])
+            status_counts[s_name] = status_counts.get(s_name, 0) + 1
+
+        problems_summary[qid] = {
+            "question_id": qid,
+            "title": p_data["title"],
+            "description": p_data["description"],
+            "total_attempts": total_p_attempts,
+            "unique_students": unique_students,
+            "passed_students": passed_students,
+            "success_rate_percent": round(success_rate, 1),
+            "avg_attempts_to_pass": round(avg_attempts_to_pass, 1),
+            "status_distribution": status_counts
+        }
+
+    # 6. Process student-wise timelines and generate feedback
+    students_summary = {}
+    api_key_configured = os.environ.get("OPENAI_API_KEY") is not None
+    
+    print("\nAnalyzing student timelines and running feedback engine...")
+    processed_count = 0
+    for idx, (email, s_data) in enumerate(student_groups.items()):
+        uid = s_data["user_id"]
+        s_subs = s_data["submissions"]
+        
+        # Group submissions of this student by question
+        student_q_timeline = {}
+        for sub in s_subs:
+            qid = str(sub["question_id"])
+            student_q_timeline.setdefault(qid, []).append(sub)
+            
+        # Analyze timelines for each question attempted by this student
+        questions_analyzed = []
+        solved_qids = []
+        attempted_qids = []
+        
+        for qid, q_subs in student_q_timeline.items():
+            timeline_res = analyzer.analyze_student_problem_timeline(
+                q_subs, 
+                diff_summarizer=llm_client.summarize_code_change
+            )
+            
+            # Map titles/descriptions
+            meta = problems_metadata.get(qid, {})
+            timeline_res["title"] = meta.get("title", f"Problem {qid}")
+            timeline_res["description"] = meta.get("description", "No description provided.")
+            
+            questions_analyzed.append(timeline_res)
+            attempted_qids.append(qid)
+            if timeline_res["solved"]:
+                solved_qids.append(qid)
+                
+        # Determine whether to call OpenAI API
+        use_mock = dry_run or not api_key_configured
+        if student_limit is not None and processed_count >= student_limit:
+            use_mock = True
+
+        if not use_mock:
+            print(f"[{processed_count + 1}/{len(student_groups)}] Generating AI feedback for student: {email}")
+            feedback = llm_client.analyze_student_feedback(email, questions_analyzed)
+            processed_count += 1
+        else:
+            feedback = llm_client.generate_mock_feedback(email, questions_analyzed)
+            
+        students_summary[email] = {
+            "user_id": uid,
+            "email": email,
+            "total_submissions": len(s_subs),
+            "solved_count": len(solved_qids),
+            "attempted_count": len(attempted_qids),
+            "solved_questions": solved_qids,
+            "attempted_questions": attempted_qids,
+            "feedback": feedback,
+            "attempts_details": questions_analyzed
+        }
+
+    # 7. Compile report and save
+    os.makedirs(output_dir, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    
+    report_data = {
+        "metadata": {
+            "contest_key": contest_key,
+            "contest_name": contest_name,
+            "source_file": os.path.basename(file_path),
+            "analyzed_at": datetime.now().isoformat(),
+            "total_students": len(student_groups),
+            "total_questions": len(problem_groups),
+            "total_submissions": len(submissions),
+            "dry_run": dry_run,
+            "openai_api_used": api_key_configured and not dry_run
+        },
+        "problems": problems_summary,
+        "students": students_summary
+    }
+
+    # Save to the contest-specific directory
+    summary_path = os.path.join(output_dir, "summary.json")
+    with open(summary_path, "w") as f:
+        json.dump(report_data, f, indent=2)
+        
+    print(f"\n✅ Analysis complete!")
+    print(f"📊 Contest summary saved to: {summary_path}")
+    
+    return report_data
+
+class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # Redirect index requests to /web/index.html
+        if self.path == "/" or self.path == "":
+            self.send_response(302)
+            self.send_header('Location', '/web/index.html')
+            self.end_headers()
+            return
+            
+        parsed_url = urlparse(self.path)
+        if parsed_url.path == "/api/contests":
+            contests = []
+            contests_dir = os.path.join(DEFAULT_REPORT_DIR, "contests")
+            if os.path.exists(contests_dir):
+                for folder in sorted(os.listdir(contests_dir)):
+                    folder_path = os.path.join(contests_dir, folder)
+                    if os.path.isdir(folder_path):
+                        summary_path = os.path.join(folder_path, "summary.json")
+                        if os.path.exists(summary_path):
+                            try:
+                                with open(summary_path, "r") as f:
+                                    summary_data = json.load(f)
+                                    metadata = summary_data.get("metadata", {})
+                                    contests.append({
+                                        "key": folder,
+                                        "contest_name": metadata.get("contest_name", metadata.get("source_file", folder)),
+                                        "source_file": metadata.get("source_file", folder),
+                                        "analyzed_at": metadata.get("analyzed_at", ""),
+                                        "total_students": metadata.get("total_students", 0),
+                                        "total_questions": metadata.get("total_questions", 0),
+                                        "total_submissions": metadata.get("total_submissions", 0)
+                                    })
+                            except Exception as e:
+                                print(f"Error reading summary for contest {folder}: {e}")
+                                
+            # Sort contests by analyzed_at descending (latest first)
+            contests.sort(key=lambda c: c.get("analyzed_at", ""), reverse=True)
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+            self.end_headers()
+            self.wfile.write(json.dumps(contests).encode('utf-8'))
+            return
+
+        return super().do_GET()
+
+    def do_POST(self):
+        parsed_url = urlparse(self.path)
+        if parsed_url.path == "/api/upload":
+            try:
+                query = parse_qs(parsed_url.query)
+                filename = query.get("filename", ["contest.json"])[0]
+                contest_name = query.get("contest_name", [None])[0]
+                
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                json_text = post_data.decode("utf-8")
+                
+                # Validate JSON structure
+                json.loads(json_text)
+                
+                # Save uploaded file
+                if contest_name:
+                    clean_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in contest_name.strip())
+                    clean_name = "_".join(part for part in clean_name.split('_') if part)
+                    safe_filename = f"{clean_name}.json"
+                else:
+                    safe_filename = "".join(c for c in filename if c.isalnum() or c in ('.', '-', '_')).strip()
+
+                os.makedirs("data/contests", exist_ok=True)
+                file_path = os.path.join("data/contests", safe_filename)
+                
+                with open(file_path, "w") as f:
+                    f.write(json_text)
+                    
+                # Run the analysis
+                dry_run = os.environ.get("OPENAI_API_KEY") is None
+                report_data = run_analysis(file_path, dry_run=dry_run, contest_name=contest_name)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                response = {
+                    "success": True,
+                    "contest_key": report_data["metadata"]["contest_key"],
+                    "message": "Contest uploaded and analyzed successfully!"
+                }
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            except Exception as e:
+                print(f"Error handling file upload: {e}")
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                response = {
+                    "success": False,
+                    "message": f"Server error during analysis: {str(e)}"
+                }
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            return
+            
+        self.send_error(404, "Endpoint not found")
+
+def start_server(port=8000):
+    handler = DashboardHTTPRequestHandler
+    # Enable silent or cleaner server logs
+    # socketserver.TCPServer.allow_reuse_address = True
+    
+    with socketserver.TCPServer(("", port), handler) as httpd:
+        print(f"\n==================================================")
+        print(f"🖥️  Student Coding Feedback Dashboard is running!")
+        print(f"🔗 Open your browser at: http://localhost:{port}")
+        print(f"Press Ctrl+C to stop the server.")
+        print(f"==================================================\n")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\nShutting down dashboard server. Bye!")
+
+def main():
+    parser_arg = argparse.ArgumentParser(description="Student Coding Feedback Analyzer (SCFA)")
+    subparsers = parser_arg.add_subparsers(dest="command", help="Available commands")
+
+    # Analyze subparser
+    analyze_parser = subparsers.add_parser("analyze", help="Parse and analyze submissions JSON file")
+    analyze_parser.add_argument("--file", required=True, help="Path to submissions JSON file")
+    analyze_parser.add_argument("--dry-run", action="store_true", help="Pre-process data locally without calling OpenAI")
+    analyze_parser.add_argument("--limit", type=int, default=None, help="Limit number of students analyzed via OpenAI API")
+    analyze_parser.add_argument("--name", type=str, default=None, help="Name of the contest")
+
+    # Serve subparser
+    serve_parser = subparsers.add_parser("serve", help="Launch the local web dashboard server")
+    serve_parser.add_argument("--port", type=int, default=8000, help="Port to run dashboard server on")
+
+    args = parser_arg.parse_args()
+
+    if args.command == "analyze":
+        run_analysis(args.file, args.dry_run, args.limit, contest_name=args.name)
+    elif args.command == "serve":
+        start_server(args.port)
+    else:
+        parser_arg.print_help()
+
+if __name__ == "__main__":
+    main()

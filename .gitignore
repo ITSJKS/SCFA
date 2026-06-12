@@ -1,0 +1,20 @@
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Ignore local contests and reports database
+data/contests/*
+!data/contests/.gitkeep
+
+reports/contests/*
+!reports/contests/.gitkeep
+
+# Ignore environment config and OS files
+.env
+.env.*
+!.env.example
+.DS_Store
