@@ -1,0 +1,14 @@
+{
+  "23814": {
+    "title": "First Occurrence of One",
+    "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
+  },
+  "267": {
+    "title": "Trapping Rain Water",
+    "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
+  },
+  "303": {
+    "title": "Next Greater Element",
+    "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
+  }
+}
