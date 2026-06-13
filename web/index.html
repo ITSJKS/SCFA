@@ -312,6 +312,45 @@
     </div>
   </div>
 
+  <!-- Modal Upload Config -->
+  <div class="modal-overlay" id="upload-config-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>Upload & Group Contest</h2>
+        <button class="modal-close-btn" id="upload-config-close"><span class="material-icons-round">close</span></button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--panel-border);">
+          <span style="font-weight: 600; color: var(--text-primary);">Selected File:</span> <span id="upload-file-name-display">-</span>
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="upload-contest-name">Contest Name</label>
+          <input type="text" id="upload-contest-name" class="modal-input" placeholder="e.g. Weekly Contest 12">
+        </div>
+        
+        <div class="modal-form-group">
+          <label for="upload-program-select">Program / Cohort Group</label>
+          <select id="upload-program-select" class="modal-select">
+            <!-- Program options populated dynamically -->
+          </select>
+        </div>
+        
+        <div class="modal-form-group" id="upload-program-new-group" style="display: none;">
+          <label for="upload-program-new">New Program Name</label>
+          <input type="text" id="upload-program-new" class="modal-input" placeholder="e.g. Summer Bootcamp 2026">
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 12px 20px;">
+        <button class="btn-secondary" id="upload-config-cancel" style="padding: 8px 16px; font-family: inherit; border-radius: var(--border-radius-md);">Cancel</button>
+        <button class="btn-primary" id="upload-config-submit" style="padding: 8px 20px; font-family: inherit; border-radius: var(--border-radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <span class="material-icons-round" style="font-size: 18px;">analytics</span>
+          Start Analysis
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="/web/app.js"></script>
 </body>
 </html>
