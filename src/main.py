@@ -4,6 +4,7 @@ import json
 import argparse
 import http.server
 import socketserver
+import threading
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 
@@ -15,11 +16,18 @@ from src import parser, analyzer, llm_client
 DEFAULT_REPORT_DIR = "reports"
 DEFAULT_SUBMISSIONS_DIR = "reports/correct_submissions"
 
-def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, contest_name=None, program_name=None):
+# Global state for tracking running background analyses and user aborts
+ACTIVE_ANALYSES = {}
+ACTIVE_ANALYSES_LOCK = threading.Lock()
+
+def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, contest_name=None, program_name=None, cost_limit=0.50):
     print(f"🚀 Starting analysis for submissions file: {file_path}")
     print(f"Dry run: {dry_run}")
     if student_limit:
         print(f"Student limit: {student_limit} (AI feedback will only run for first {student_limit} students)")
+
+    # Reset LLM client cost tracker
+    llm_client.reset_cost_tracker()
 
     # 1. Load problems metadata
     problems_metadata = parser.load_problems_metadata()
@@ -47,6 +55,18 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
         output_dir = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key)
         
     submissions_dir = os.path.join(output_dir, "correct_submissions")
+
+    # Load existing summary.json for checkpoint resume if available
+    existing_students = {}
+    summary_path = os.path.join(output_dir, "summary.json")
+    if os.path.exists(summary_path):
+        try:
+            with open(summary_path, "r") as f:
+                existing_data = json.load(f)
+                existing_students = existing_data.get("students", {})
+                print(f"🔄 Found checkpoint: Loaded {len(existing_students)} students from existing report to resume/skip completed tasks.")
+        except Exception as e:
+            print(f"Could not read existing summary.json for checkpoint resume: {e}")
 
     # 3. Export successful submissions to python files
     print("Saving successful student submissions as .py files...")
@@ -107,10 +127,55 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
     
     print("\nAnalyzing student timelines and running feedback engine...")
     processed_count = 0
+    aborted_by_user = False
+    cost_limit_reached = False
+
+    # Initialize task info
+    with ACTIVE_ANALYSES_LOCK:
+        ACTIVE_ANALYSES[contest_key] = {
+            "status": "running",
+            "processed_students": 0,
+            "total_students": len(student_groups),
+            "cost_usd": 0.0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "aborted": False
+        }
+
     for idx, (email, s_data) in enumerate(student_groups.items()):
+        # 1. Check user abort flag
+        is_aborted = False
+        with ACTIVE_ANALYSES_LOCK:
+            if contest_key in ACTIVE_ANALYSES and ACTIVE_ANALYSES[contest_key].get("aborted"):
+                is_aborted = True
+        if is_aborted:
+            print(f"🛑 Analysis aborted by user. Exiting at student {idx+1}/{len(student_groups)}.")
+            aborted_by_user = True
+            break
+
+        # 2. Check cost limit
+        cost_info = llm_client.get_current_cost()
+        if cost_info["cost_usd"] >= cost_limit:
+            print(f"⚠️ OpenAI cost limit of ${cost_limit:.4f} reached (Current: ${cost_info['cost_usd']:.4f}). Stopping AI calls.")
+            cost_limit_reached = True
+            break
+
         uid = s_data["user_id"]
         s_subs = s_data["submissions"]
         
+        # 3. Check resume checkpoint (skip already completed students)
+        if email in existing_students:
+            estudent = existing_students[email]
+            if estudent.get("ai_critique_completed") and estudent.get("total_submissions") == len(s_subs):
+                print(f"skip [{idx+1}/{len(student_groups)}]: Student {email} already analyzed. Skipping.")
+                students_summary[email] = estudent
+                processed_count += 1
+                
+                with ACTIVE_ANALYSES_LOCK:
+                    if contest_key in ACTIVE_ANALYSES:
+                        ACTIVE_ANALYSES[contest_key]["processed_students"] = processed_count
+                continue
+
         # Group submissions of this student by question
         student_q_timeline = {}
         for sub in s_subs:
@@ -144,7 +209,7 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             use_mock = True
 
         if not use_mock:
-            print(f"[{processed_count + 1}/{len(student_groups)}] Generating AI feedback for student: {email}")
+            print(f"[{idx+1}/{len(student_groups)}] Generating AI feedback for student: {email}")
             feedback = llm_client.analyze_student_feedback(email, questions_analyzed)
             processed_count += 1
         else:
@@ -159,14 +224,76 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "solved_questions": solved_qids,
             "attempted_questions": attempted_qids,
             "feedback": feedback,
-            "attempts_details": questions_analyzed
+            "attempts_details": questions_analyzed,
+            "ai_critique_completed": not use_mock
+        }
+
+        # Update real-time background task stats
+        current_cost = llm_client.get_current_cost()
+        with ACTIVE_ANALYSES_LOCK:
+            if contest_key in ACTIVE_ANALYSES:
+                ACTIVE_ANALYSES[contest_key]["processed_students"] = processed_count
+                ACTIVE_ANALYSES[contest_key]["cost_usd"] = current_cost["cost_usd"]
+                ACTIVE_ANALYSES[contest_key]["prompt_tokens"] = current_cost["prompt_tokens"]
+                ACTIVE_ANALYSES[contest_key]["completion_tokens"] = current_cost["completion_tokens"]
+
+    # 4. Fill remaining students using previous summary or fallback mock feedback if aborted or cost limit hit
+    for email, s_data in student_groups.items():
+        if email in students_summary:
+            continue
+            
+        uid = s_data["user_id"]
+        s_subs = s_data["submissions"]
+        
+        # Check if we can resume from existing summary
+        if email in existing_students:
+            print(f"Copying existing analysis checkpoint for remaining student {email}")
+            students_summary[email] = existing_students[email]
+            continue
+            
+        # Group submissions of this student by question for local timelines
+        student_q_timeline = {}
+        for sub in s_subs:
+            qid = str(sub["question_id"])
+            student_q_timeline.setdefault(qid, []).append(sub)
+            
+        questions_analyzed = []
+        solved_qids = []
+        attempted_qids = []
+        
+        for qid, q_subs in student_q_timeline.items():
+            timeline_res = analyzer.analyze_student_problem_timeline(
+                q_subs, 
+                diff_summarizer=llm_client.summarize_code_change
+            )
+            meta = problems_metadata.get(qid, {})
+            timeline_res["title"] = meta.get("title", f"Problem {qid}")
+            timeline_res["description"] = meta.get("description", "No description provided.")
+            
+            questions_analyzed.append(timeline_res)
+            attempted_qids.append(qid)
+            if timeline_res["solved"]:
+                solved_qids.append(qid)
+                
+        feedback = llm_client.generate_mock_feedback(email, questions_analyzed)
+        
+        students_summary[email] = {
+            "user_id": uid,
+            "email": email,
+            "total_submissions": len(s_subs),
+            "solved_count": len(solved_qids),
+            "attempted_count": len(attempted_qids),
+            "solved_questions": solved_qids,
+            "attempted_questions": attempted_qids,
+            "feedback": feedback,
+            "attempts_details": questions_analyzed,
+            "ai_critique_completed": False
         }
 
     # 7. Compile report and save
     os.makedirs(output_dir, exist_ok=True)
     
-    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-    
+    cost_info = llm_client.get_current_cost()
     report_data = {
         "metadata": {
             "contest_key": contest_key,
@@ -178,7 +305,12 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "total_questions": len(problem_groups),
             "total_submissions": len(submissions),
             "dry_run": dry_run,
-            "openai_api_used": api_key_configured and not dry_run
+            "openai_api_used": api_key_configured and not dry_run,
+            "accumulated_openai_cost_usd": cost_info["cost_usd"],
+            "prompt_tokens": cost_info["prompt_tokens"],
+            "completion_tokens": cost_info["completion_tokens"],
+            "aborted_by_user": aborted_by_user,
+            "cost_limit_reached": cost_limit_reached
         },
         "problems": problems_summary,
         "students": students_summary
@@ -189,10 +321,50 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
     with open(summary_path, "w") as f:
         json.dump(report_data, f, indent=2)
         
-    print(f"\n✅ Analysis complete!")
-    print(f"📊 Contest summary saved to: {summary_path}")
+def start_analysis_in_background(file_path, dry_run, contest_name, program_name, cost_limit=0.50):
+    filename_base = os.path.splitext(os.path.basename(file_path))[0]
+    contest_key = "".join(c for c in filename_base if c.isalnum() or c in ('-', '_')).strip()
     
-    return report_data
+    with ACTIVE_ANALYSES_LOCK:
+        ACTIVE_ANALYSES[contest_key] = {
+            "status": "pending",
+            "processed_students": 0,
+            "total_students": 0,
+            "cost_usd": 0.0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "aborted": False
+        }
+        
+    thread = threading.Thread(
+        target=run_analysis_worker,
+        args=(file_path, dry_run, contest_name, program_name, contest_key, cost_limit)
+    )
+    thread.daemon = True
+    thread.start()
+    return contest_key
+
+def run_analysis_worker(file_path, dry_run, contest_name, program_name, contest_key, cost_limit):
+    try:
+        run_analysis(
+            file_path,
+            dry_run=dry_run,
+            contest_name=contest_name,
+            program_name=program_name,
+            cost_limit=cost_limit
+        )
+        with ACTIVE_ANALYSES_LOCK:
+            if contest_key in ACTIVE_ANALYSES:
+                if ACTIVE_ANALYSES[contest_key].get("aborted"):
+                    ACTIVE_ANALYSES[contest_key]["status"] = "aborted"
+                else:
+                    ACTIVE_ANALYSES[contest_key]["status"] = "completed"
+    except Exception as e:
+        print(f"Error in analysis worker thread: {e}")
+        with ACTIVE_ANALYSES_LOCK:
+            if contest_key in ACTIVE_ANALYSES:
+                ACTIVE_ANALYSES[contest_key]["status"] = "failed"
+                ACTIVE_ANALYSES[contest_key]["error"] = str(e)
 
 class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -204,6 +376,30 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return
             
         parsed_url = urlparse(self.path)
+        if parsed_url.path == "/api/analysis-status":
+            query = parse_qs(parsed_url.query)
+            contest_key = query.get("contest_key", [None])[0]
+            if not contest_key:
+                self.send_error(400, "contest_key parameter required")
+                return
+                
+            with ACTIVE_ANALYSES_LOCK:
+                status_info = ACTIVE_ANALYSES.get(contest_key, {
+                    "status": "idle",
+                    "processed_students": 0,
+                    "total_students": 0,
+                    "cost_usd": 0.0,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0
+                })
+                
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+            self.end_headers()
+            self.wfile.write(json.dumps(status_info).encode('utf-8'))
+            return
+
         if parsed_url.path == "/api/contests":
             contests = []
             contests_dir = os.path.join(DEFAULT_REPORT_DIR, "contests")
@@ -314,6 +510,7 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 filename = query.get("filename", ["contest.json"])[0]
                 contest_name = query.get("contest_name", [None])[0]
                 program_name = query.get("program_name", [None])[0]
+                cost_limit = float(query.get("cost_limit", [0.50])[0])
                 
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length)
@@ -336,13 +533,14 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 with open(file_path, "w") as f:
                     f.write(json_text)
                     
-                # Run the analysis
+                # Run the analysis in the background
                 dry_run = os.environ.get("OPENAI_API_KEY") is None
-                report_data = run_analysis(
+                contest_key = start_analysis_in_background(
                     file_path, 
                     dry_run=dry_run, 
                     contest_name=contest_name, 
-                    program_name=program_name
+                    program_name=program_name,
+                    cost_limit=cost_limit
                 )
                 
                 self.send_response(200)
@@ -350,8 +548,8 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 response = {
                     "success": True,
-                    "contest_key": report_data["metadata"]["contest_key"],
-                    "message": "Contest uploaded and analyzed successfully!"
+                    "contest_key": contest_key,
+                    "message": "Contest uploaded. AI analysis has started in the background."
                 }
                 self.wfile.write(json.dumps(response).encode('utf-8'))
             except Exception as e:
@@ -361,7 +559,7 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 response = {
                     "success": False,
-                    "message": f"Server error during analysis: {str(e)}"
+                    "message": f"Server error during upload: {str(e)}"
                 }
                 self.wfile.write(json.dumps(response).encode('utf-8'))
             return
@@ -370,6 +568,7 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 query = parse_qs(parsed_url.query)
                 contest_key = query.get("contest_key", [None])[0]
+                cost_limit = float(query.get("cost_limit", [0.50])[0])
                 if not contest_key:
                     raise Exception("contest_key parameter is required")
                 
@@ -404,11 +603,12 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         contest_name = meta.get("contest_name")
                         program_name = meta.get("program_name")
                 
-                report_data = run_analysis(
+                start_analysis_in_background(
                     raw_file_path, 
                     dry_run=False, 
                     contest_name=contest_name, 
-                    program_name=program_name
+                    program_name=program_name,
+                    cost_limit=cost_limit
                 )
                 
                 self.send_response(200)
@@ -417,7 +617,7 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 response = {
                     "success": True,
                     "contest_key": contest_key,
-                    "message": "AI analysis completed successfully!"
+                    "message": "AI analysis started in the background."
                 }
                 self.wfile.write(json.dumps(response).encode('utf-8'))
             except Exception as e:
@@ -428,6 +628,40 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 response = {
                     "success": False,
                     "message": f"AI Analysis failed: {str(e)}"
+                }
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            return
+
+        if parsed_url.path == "/api/abort-analysis":
+            try:
+                query = parse_qs(parsed_url.query)
+                contest_key = query.get("contest_key", [None])[0]
+                if not contest_key:
+                    raise Exception("contest_key parameter is required")
+                
+                with ACTIVE_ANALYSES_LOCK:
+                    if contest_key in ACTIVE_ANALYSES:
+                        ACTIVE_ANALYSES[contest_key]["aborted"] = True
+                        ACTIVE_ANALYSES[contest_key]["status"] = "aborting"
+                        msg = "Analysis abort requested. Progress will be saved."
+                    else:
+                        msg = "No running analysis found for this contest."
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                response = {
+                    "success": True,
+                    "message": msg
+                }
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                response = {
+                    "success": False,
+                    "message": f"Failed to abort analysis: {str(e)}"
                 }
                 self.wfile.write(json.dumps(response).encode('utf-8'))
             return

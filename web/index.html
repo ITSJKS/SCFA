@@ -340,6 +340,15 @@
           <label for="upload-program-new">New Program Name</label>
           <input type="text" id="upload-program-new" class="modal-input" placeholder="e.g. Summer Bootcamp 2026">
         </div>
+
+        <div class="modal-form-group">
+          <label for="upload-cost-limit">AI Cost Threshold Limit (USD)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: var(--text-secondary); font-weight: 500;">$</span>
+            <input type="number" id="upload-cost-limit" class="modal-input" value="0.50" step="0.05" min="0.01" style="width: 100px;">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Process stops & saves when OpenAI API costs exceed this amount.</span>
+          </div>
+        </div>
       </div>
       <div class="modal-footer" style="padding: 12px 20px;">
         <button class="btn-secondary" id="upload-config-cancel" style="padding: 8px 16px; font-family: inherit; border-radius: var(--border-radius-md);">Cancel</button>
@@ -348,6 +357,48 @@
           Start Analysis
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Floating Analysis Progress Widget -->
+  <div id="analysis-progress-widget" class="analysis-progress-widget hidden">
+    <div class="widget-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="material-icons-round spinner-icon" style="color: var(--accent-purple); animation: spin 2s infinite linear;">sync</span>
+        <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Running AI Critique...</h4>
+      </div>
+      <span id="widget-contest-name" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;">-</span>
+    </div>
+    
+    <div class="widget-body" style="padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary);">
+        <span>Students Processed:</span>
+        <span id="widget-progress-text" style="font-weight: 600; color: var(--text-primary);">0 / 0</span>
+      </div>
+      <div class="progress-bar-bg" style="height: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 3px; overflow: hidden;">
+        <div id="widget-progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-purple) 0%, var(--accent-cyan) 100%); transition: width 0.3s ease;"></div>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 8px; border-radius: var(--border-radius-sm); border: 1px solid var(--panel-border);">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 0.7rem; color: var(--text-muted);">OpenAI Cost Used:</span>
+          <span id="widget-cost" style="font-size: 0.9rem; font-weight: 700; color: var(--accent-cyan);">$0.0000</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; text-align: right;">
+          <span style="font-size: 0.7rem; color: var(--text-muted);">Threshold Limit:</span>
+          <span id="widget-cost-limit" style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);">$0.50</span>
+        </div>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+        <span>Input: <span id="widget-tokens-in">0</span> tokens</span>
+        <span>Output: <span id="widget-tokens-out">0</span> tokens</span>
+      </div>
+      
+      <button class="btn-sm" id="widget-abort-btn" style="background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.25); color: var(--accent-rose); width: 100%; justify-content: center; padding: 8px; font-weight: 600; margin-top: 4px; border-radius: var(--border-radius-md);">
+        <span class="material-icons-round" style="font-size: 16px;">stop</span>
+        Stop & Save Progress
+      </button>
     </div>
   </div>
 
