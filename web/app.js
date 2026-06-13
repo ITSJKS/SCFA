@@ -105,6 +105,11 @@ document.addEventListener("DOMContentLoaded", () => {
           clearInterval(activePollInterval);
           activePollInterval = null;
           
+          // Clear localStorage cache
+          localStorage.removeItem("activeAnalysisKey");
+          localStorage.removeItem("activeAnalysisCostLimit");
+          localStorage.removeItem("activeAnalysisName");
+          
           if (data.status === "completed") {
             showToast("Analysis Completed successfully!", "success");
           } else if (data.status === "aborted") {
@@ -357,6 +362,11 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(data.message || "Failed to run AI Critique.");
       }
       
+      // Save state to localStorage to recover on refresh
+      localStorage.setItem("activeAnalysisKey", contestSelector.value);
+      localStorage.setItem("activeAnalysisCostLimit", costLimit);
+      localStorage.setItem("activeAnalysisName", contestName);
+      
       // Start real-time monitoring widget
       trackAnalysisProgress(contestSelector.value, costLimit, contestName);
     } catch (err) {
@@ -481,6 +491,11 @@ document.addEventListener("DOMContentLoaded", () => {
       uploadStatus.textContent = "Started!";
       setTimeout(() => uploadStatus.classList.add("hidden"), 2000);
       
+      // Save state to localStorage to recover on refresh
+      localStorage.setItem("activeAnalysisKey", resData.contest_key);
+      localStorage.setItem("activeAnalysisCostLimit", costLimit);
+      localStorage.setItem("activeAnalysisName", cleanContestName);
+      
       // Start tracking background progress
       trackAnalysisProgress(resData.contest_key, costLimit, cleanContestName);
     } catch (err) {
@@ -518,6 +533,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initial load
   loadContestsList();
+
+  // Recover running analysis widget on page load if active
+  const cachedKey = localStorage.getItem("activeAnalysisKey");
+  if (cachedKey) {
+    const cachedCostLimit = parseFloat(localStorage.getItem("activeAnalysisCostLimit")) || 0.50;
+    const cachedName = localStorage.getItem("activeAnalysisName") || "Contest";
+    trackAnalysisProgress(cachedKey, cachedCostLimit, cachedName);
+  }
 
   // Tab Navigation
   tabButtons.forEach(btn => {
