@@ -42,8 +42,8 @@ def _record_completions_usage(response):
     cost = (prompt_tokens * in_rate) + (completion_tokens * out_rate)
     _current_cost_tracker["cost_usd"] += cost
 
-def get_openai_client():
-    api_key = os.environ.get("OPENAI_API_KEY")
+def get_openai_client(custom_api_key=None):
+    api_key = custom_api_key or os.environ.get("OPENAI_API_KEY")
     if not api_key:
         return None
     try:
@@ -73,12 +73,14 @@ def generate_mock_feedback(student_email, questions_data):
         "question_feedback": question_feedback
     }
 
-def analyze_student_feedback(student_email, questions_data):
+def analyze_student_feedback(student_email, questions_data, custom_api_key=None, raise_on_error=False):
     """
     Sends the student's problem attempts data to OpenAI to generate personalized feedback.
     """
-    client = get_openai_client()
+    client = get_openai_client(custom_api_key)
     if not client:
+        if raise_on_error:
+            raise Exception("OpenAI API client is not configured or failed to initialize.")
         # Graceful fallback if OpenAI is not configured
         return generate_mock_feedback(student_email, questions_data)
         
@@ -93,7 +95,8 @@ def analyze_student_feedback(student_email, questions_data):
             ],
             response_format={"type": "json_object"},
             temperature=0.2,
-            max_tokens=2000
+            max_tokens=2000,
+            timeout=30.0
         )
         
         _record_completions_usage(response)
@@ -101,16 +104,18 @@ def analyze_student_feedback(student_email, questions_data):
         return json.loads(result_text)
     except Exception as e:
         print(f"Error calling OpenAI API for student {student_email}: {e}")
+        if raise_on_error:
+            raise e
         # Return fallback mock feedback so the entire pipeline doesn't crash on a single API issue
         return generate_mock_feedback(student_email, questions_data)
 
-def summarize_code_change(code1, code2):
+def summarize_code_change(code1, code2, custom_api_key=None):
     """
     Summarizes the code changes between two successive submissions using a cheap OpenAI model.
     Falls back to local diff metrics description if OpenAI is not available.
     """
     if not code1:
-        client = get_openai_client()
+        client = get_openai_client(custom_api_key)
         if not client:
             return "Initial code written."
         try:
@@ -124,7 +129,8 @@ def summarize_code_change(code1, code2):
                     {"role": "user", "content": f"Code:\n```python\n{code2}\n```"}
                 ],
                 temperature=0.1,
-                max_tokens=60
+                max_tokens=60,
+                timeout=15.0
             )
             _record_completions_usage(response)
             return response.choices[0].message.content.strip().replace('"', '').replace("'", "")
@@ -148,7 +154,7 @@ def summarize_code_change(code1, code2):
     if not diff_patch.strip():
         return "No functional line changes."
         
-    client = get_openai_client()
+    client = get_openai_client(custom_api_key)
     if not client:
         # Fallback to local diff characterization
         from src.analyzer import compute_diff
@@ -165,7 +171,8 @@ def summarize_code_change(code1, code2):
                 {"role": "user", "content": f"Diff patch:\n```diff\n{diff_patch}\n```"}
             ],
             temperature=0.1,
-            max_tokens=60
+            max_tokens=60,
+            timeout=15.0
         )
         _record_completions_usage(response)
         return response.choices[0].message.content.strip().replace('"', '').replace("'", "")

@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Default: Dark Theme */
+    --bg-color: #080c14;
+    --panel-bg: rgba(17, 25, 40, 0.7);
+    --panel-border: rgba(255, 255, 255, 0.08);
+    --header-bg: #0d1423;
+    --header-border: rgba(255, 255, 255, 0.08);
+    
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    
+    --accent-cyan: #00f2fe;
+    --accent-purple: #9d4edd;
+    --accent-green: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-orange: #f59e0b;
+
+    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --glow-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+    --glow-shadow-purple: 0 0 15px rgba(157, 78, 221, 0.3);
+
+    --bg-surface-input: rgba(255, 255, 255, 0.03);
+    --bg-surface-hover: rgba(255, 255, 255, 0.02);
+    --bg-surface-active: rgba(255, 255, 255, 0.06);
+    --panel-bg-solid: #111827;
+  }
+
+  .theme-light {
+    /* Light Theme */
+    --bg-color: #f3f4f6;
+    --panel-bg: #ffffff;
+    --panel-border: #e5e7eb;
+    --header-bg: #ffffff;
+    --header-border: #e5e7eb;
+    
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-muted: #9ca3af;
+    
+    --accent-cyan: #0284c7;
+    --accent-purple: #6366f1;
+    --accent-green: #16a34a;
+    --accent-rose: #dc2626;
+    --accent-orange: #d97706;
+
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --glow-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
+    --glow-shadow-purple: 0 4px 12px rgba(99, 102, 241, 0.08);
+
+    --bg-surface-input: #f9fafb;
+    --bg-surface-hover: #f3f4f6;
+    --bg-surface-active: #e5e7eb;
+    --panel-bg-solid: #ffffff;
+  }
+
+  .theme-dark {
+    --bg-color: #080c14;
+    --panel-bg: rgba(17, 25, 40, 0.7);
+    --panel-border: rgba(255, 255, 255, 0.08);
+    --header-bg: #0d1423;
+    --header-border: rgba(255, 255, 255, 0.08);
+    
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    
+    --accent-cyan: #00f2fe;
+    --accent-purple: #9d4edd;
+    --accent-green: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-orange: #f59e0b;
+
+    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --glow-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+    --glow-shadow-purple: 0 0 15px rgba(157, 78, 221, 0.3);
+
+    --bg-surface-input: rgba(255, 255, 255, 0.03);
+    --bg-surface-hover: rgba(255, 255, 255, 0.02);
+    --bg-surface-active: rgba(255, 255, 255, 0.06);
+    --panel-bg-solid: #111827;
+  }
+}
+
+@theme {
+  --color-darkBg: var(--bg-color);
+  --color-panelBg: var(--panel-bg);
+  --color-panelBorder: var(--panel-border);
+  --color-headerBg: var(--header-bg);
+  --color-headerBorder: var(--header-border);
+  
+  --color-textPrimary: var(--text-primary);
+  --color-textSecondary: var(--text-secondary);
+  --color-textMuted: var(--text-muted);
+  
+  --color-accentCyan: var(--accent-cyan);
+  --color-accentPurple: var(--accent-purple);
+  --color-accentGreen: var(--accent-green);
+  --color-accentRose: var(--accent-rose);
+  --color-accentOrange: var(--accent-orange);
+
+  --color-bgSurfaceInput: var(--bg-surface-input);
+  --color-bgSurfaceHover: var(--bg-surface-hover);
+  --color-bgSurfaceActive: var(--bg-surface-active);
+  --color-panelBgSolid: var(--panel-bg-solid);
+
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+  
+  --shadow-card: var(--card-shadow);
+  --shadow-glow: var(--glow-shadow);
+  --shadow-glowPurple: var(--glow-shadow-purple);
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  overflow-x: hidden;
+}
+
+/* Smooth theme transitions for layout containers and components */
+header, nav, main, .glass-panel, .glass-card, button, select, input {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Conditionally apply gradient backgrounds for Dark Mode only */
+.theme-dark {
+  background-image: 
+    radial-gradient(at 10% 20%, rgba(157, 78, 221, 0.12) 0px, transparent 50%),
+    radial-gradient(at 90% 10%, rgba(0, 242, 254, 0.1) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Custom Webkit Scrollbars for a premium feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.01);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Theme overrides for scrollbars in light mode */
+.theme-light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Custom CSS Classes for dynamic gradient styling */
+.bg-gradientGlow {
+  background-image: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+}
+
+.text-gradientGlow {
+  background-image: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Glassmorphism panel utility class */
+.glass-panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+}
+
+/* Glassmorphism card utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+}
+
+.theme-light .glass-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.glass-card:hover {
+  background: var(--bg-surface-hover);
+}
+
+/* Custom visual pulse for logo components */
+@keyframes ping-slow {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 0.3; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 4s infinite ease-in-out;
+}
