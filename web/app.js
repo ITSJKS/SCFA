@@ -27,6 +27,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadStatus = document.getElementById("upload-status-indicator");
   const reanalyzeBtn = document.getElementById("reanalyze-btn");
 
+  // Upload configuration modal elements
+  const uploadConfigModal = document.getElementById("upload-config-modal");
+  const uploadConfigClose = document.getElementById("upload-config-close");
+  const uploadConfigCancel = document.getElementById("upload-config-cancel");
+  const uploadConfigSubmit = document.getElementById("upload-config-submit");
+  const uploadFileNameDisplay = document.getElementById("upload-file-name-display");
+  const uploadContestNameInput = document.getElementById("upload-contest-name");
+  const uploadProgramSelect = document.getElementById("upload-program-select");
+  const uploadProgramNewGroup = document.getElementById("upload-program-new-group");
+  const uploadProgramNewInput = document.getElementById("upload-program-new");
+
+
   // Load available contests list
   async function loadContestsList(selectKey = null) {
     try {
@@ -257,34 +269,105 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Handle upload triggers
+  // Handle upload triggers and modal interactions
+  let currentUploadFile = null;
+
   uploadBtn.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", async () => {
+  
+  fileInput.addEventListener("change", () => {
     if (fileInput.files.length === 0) return;
-    const file = fileInput.files[0];
+    currentUploadFile = fileInput.files[0];
     
-    const defaultName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
-    const contestName = prompt("Please enter the name of this contest:", defaultName);
-    if (contestName === null) {
-      fileInput.value = "";
-      return;
+    // Set file name display
+    uploadFileNameDisplay.textContent = currentUploadFile.name;
+    
+    // Pre-fill contest name
+    const defaultName = currentUploadFile.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
+    uploadContestNameInput.value = defaultName;
+    
+    // Populate program select dropdown with existing programs
+    const programs = [...new Set(cachedContests.map(c => c.program_name || "General Contests"))];
+    if (!programs.includes("General Contests")) {
+      programs.push("General Contests");
     }
-    const cleanContestName = contestName.trim();
+    
+    // Sort program names alphabetically
+    programs.sort();
+    
+    uploadProgramSelect.innerHTML = "";
+    programs.forEach(prog => {
+      const opt = document.createElement("option");
+      opt.value = prog;
+      opt.textContent = prog;
+      uploadProgramSelect.appendChild(opt);
+    });
+    
+    // Add option to create a new program/cohort
+    const newProgOpt = document.createElement("option");
+    newProgOpt.value = "__NEW__";
+    newProgOpt.textContent = "➕ Create New Program...";
+    uploadProgramSelect.appendChild(newProgOpt);
+    
+    // Set default select value
+    uploadProgramSelect.value = "General Contests";
+    uploadProgramNewGroup.style.display = "none";
+    uploadProgramNewInput.value = "";
+    
+    // Show modal
+    uploadConfigModal.classList.add("active");
+  });
+
+  // Toggle new program field visibility
+  uploadProgramSelect.addEventListener("change", () => {
+    if (uploadProgramSelect.value === "__NEW__") {
+      uploadProgramNewGroup.style.display = "flex";
+      uploadProgramNewInput.focus();
+    } else {
+      uploadProgramNewGroup.style.display = "none";
+    }
+  });
+
+  // Helper to close upload modal
+  function closeUploadConfigModal() {
+    uploadConfigModal.classList.remove("active");
+    fileInput.value = "";
+    currentUploadFile = null;
+  }
+
+  // Bind close buttons
+  uploadConfigClose.addEventListener("click", closeUploadConfigModal);
+  uploadConfigCancel.addEventListener("click", closeUploadConfigModal);
+
+  // Handle upload submit
+  uploadConfigSubmit.addEventListener("click", async () => {
+    if (!currentUploadFile) return;
+    
+    const cleanContestName = uploadContestNameInput.value.trim();
     if (!cleanContestName) {
       alert("Contest name cannot be empty.");
-      fileInput.value = "";
       return;
     }
-
-    const programName = prompt("Please enter the Program/Cohort name (e.g. Placement Prep) [Optional, default: General Contests]:", "General Contests");
-    const cleanProgramName = programName !== null ? programName.trim() : "General Contests";
+    
+    let programName = uploadProgramSelect.value;
+    if (programName === "__NEW__") {
+      programName = uploadProgramNewInput.value.trim();
+      if (!programName) {
+        alert("Please enter the name of the new program.");
+        return;
+      }
+    }
+    
+    const cleanProgramName = programName || "General Contests";
+    
+    // Close modal and start loading animation
+    closeUploadConfigModal();
     
     uploadStatus.classList.remove("hidden");
     uploadStatus.textContent = "Analyzing...";
     
     try {
-      const text = await file.text();
-      const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}&contest_name=${encodeURIComponent(cleanContestName)}&program_name=${encodeURIComponent(cleanProgramName || "General Contests")}`, {
+      const text = await currentUploadFile.text();
+      const res = await fetch(`/api/upload?filename=${encodeURIComponent(currentUploadFile.name)}&contest_name=${encodeURIComponent(cleanContestName)}&program_name=${encodeURIComponent(cleanProgramName)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: text
@@ -304,8 +387,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error(err);
       alert(`Upload Failed: ${err.message}`);
       uploadStatus.classList.add("hidden");
-    } finally {
-      fileInput.value = ""; // reset input
     }
   });
 
