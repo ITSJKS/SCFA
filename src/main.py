@@ -436,8 +436,8 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 def start_server(port=8000):
     handler = DashboardHTTPRequestHandler
-    # Enable silent or cleaner server logs
-    # socketserver.TCPServer.allow_reuse_address = True
+    # Enable socket address reuse to prevent "Address already in use" errors on restart
+    socketserver.TCPServer.allow_reuse_address = True
     
     with socketserver.TCPServer(("", port), handler) as httpd:
         print(f"\n==================================================")
