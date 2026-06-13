@@ -136,6 +136,16 @@ def analyze_student_problem_timeline(submissions, diff_summarizer=None):
     # Summarize final outcome
     solved = best_sub["all_test_cases_passing"]
     
+    attempts_history = [
+        {
+            "attempt_index": t["attempt_index"],
+            "status_name": t["status_name"],
+            "tests_passing": t["tests_passing"],
+            "source_code": t["source_code"]
+        }
+        for t in transitions
+    ]
+    
     return {
         "question_id": first_sub["question_id"],
         "total_attempts": total_attempts,
@@ -147,7 +157,8 @@ def analyze_student_problem_timeline(submissions, diff_summarizer=None):
         "final_attempt_code": final_sub["source_code"],
         "best_attempt_code": best_sub["source_code"],
         "timeline_summary": "\n\n".join(timeline_desc),
-        "transitions_count": len(transitions)
+        "transitions_count": len(transitions),
+        "attempts": attempts_history
     }
 
 def get_status_name(status_code):

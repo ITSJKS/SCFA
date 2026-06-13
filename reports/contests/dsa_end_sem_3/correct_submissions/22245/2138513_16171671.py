@@ -1,0 +1,14 @@
+t = int(input())
+for _ in range(t):
+    n,target=map(int,input().split())
+    nums=list(map(int,input().split()))
+    count=0
+    for i in  range(len(nums)):
+        for j in range(i+1,len(nums)):
+            for k in range(j+1,len(nums)):
+                if nums[i]+nums[j]+nums[k]==target:
+                    count+=1
+    if count:
+        print('YES')
+    else:
+        print("NO")

@@ -86,6 +86,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
   z-index: 10;
 }
 
@@ -93,17 +95,21 @@ body {
 .contest-controls {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+  justify-content: flex-start;
+  margin-left: 15px;
 }
 
 .dropdown-wrapper {
-  position: relative;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--panel-border);
   border-radius: var(--border-radius-md);
-  padding: 6px 14px 6px 36px;
+  padding: 6px 14px;
   display: flex;
   align-items: center;
+  gap: 8px;
   transition: var(--transition-fast);
 }
 
@@ -112,10 +118,9 @@ body {
   box-shadow: 0 0 8px rgba(0, 242, 254, 0.2);
 }
 
-.dropdown-icon {
-  position: absolute;
-  left: 12px;
-  font-size: 18px;
+.dropdown-label {
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
@@ -128,7 +133,13 @@ body {
   font-weight: 500;
   outline: none;
   cursor: pointer;
-  padding-right: 10px;
+  padding-right: 5px;
+}
+
+/* Style select options to match dark-theme dropdown */
+.contest-dropdown option {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
 }
 
 .btn-upload {
@@ -154,6 +165,11 @@ body {
   0% { opacity: 0.6; }
   50% { opacity: 1; }
   100% { opacity: 0.6; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .logo-area {
@@ -189,8 +205,9 @@ body {
 .header-metadata {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
   font-size: 0.85rem;
+  flex-wrap: wrap;
 }
 
 .meta-item {
@@ -1194,3 +1211,94 @@ code {
 .font-green { color: var(--accent-green); }
 .font-rose { color: var(--accent-rose); }
 .font-orange { color: var(--accent-orange); }
+
+/* Progress Milestone Grid Styles */
+#progress-grid-table th {
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 10px;
+}
+
+#progress-grid-table td {
+  padding: 12px;
+  vertical-align: middle;
+}
+
+#progress-grid-table th:first-child,
+#progress-grid-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#progress-grid-table th:nth-child(2),
+#progress-grid-table td:nth-child(2) {
+  text-align: left;
+}
+
+.milestone-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  min-width: 45px;
+}
+
+.badge-green {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--accent-green);
+}
+
+.badge-cyan {
+  background: rgba(0, 242, 254, 0.15);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  color: var(--accent-cyan);
+}
+
+.badge-orange {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--accent-orange);
+}
+
+.badge-rose {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: var(--accent-rose);
+}
+
+.badge-gray {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+/* Trends indicators */
+.trend-up {
+  color: var(--accent-green);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.trend-down {
+  color: var(--accent-rose);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.trend-flat {
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* Horizontal scrolling container for milestone cards */
+.milestones-trend-cards::-webkit-scrollbar {
+  height: 6px;
+}

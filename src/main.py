@@ -15,7 +15,7 @@ from src import parser, analyzer, llm_client
 DEFAULT_REPORT_DIR = "reports"
 DEFAULT_SUBMISSIONS_DIR = "reports/correct_submissions"
 
-def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, contest_name=None):
+def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, contest_name=None, program_name=None):
     print(f"🚀 Starting analysis for submissions file: {file_path}")
     print(f"Dry run: {dry_run}")
     if student_limit:
@@ -39,6 +39,9 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
     
     if not contest_name:
         contest_name = contest_key.replace('_', ' ').replace('-', ' ').strip()
+        
+    if not program_name:
+        program_name = "General Contests"
 
     if output_dir is None:
         output_dir = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key)
@@ -168,6 +171,7 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
         "metadata": {
             "contest_key": contest_key,
             "contest_name": contest_name,
+            "program_name": program_name,
             "source_file": os.path.basename(file_path),
             "analyzed_at": datetime.now().isoformat(),
             "total_students": len(student_groups),
@@ -216,6 +220,7 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                                     contests.append({
                                         "key": folder,
                                         "contest_name": metadata.get("contest_name", metadata.get("source_file", folder)),
+                                        "program_name": metadata.get("program_name", "General Contests"),
                                         "source_file": metadata.get("source_file", folder),
                                         "analyzed_at": metadata.get("analyzed_at", ""),
                                         "total_students": metadata.get("total_students", 0),
@@ -235,6 +240,70 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(contests).encode('utf-8'))
             return
 
+        if parsed_url.path == "/api/progress":
+            query = parse_qs(parsed_url.query)
+            target_program = query.get("program", ["All"])[0]
+            
+            progress_data = {
+                "program_name": target_program,
+                "contests": [],
+                "students": {}
+            }
+            
+            contests_dir = os.path.join(DEFAULT_REPORT_DIR, "contests")
+            program_contests = []
+            
+            if os.path.exists(contests_dir):
+                for folder in sorted(os.listdir(contests_dir)):
+                    folder_path = os.path.join(contests_dir, folder)
+                    if os.path.isdir(folder_path):
+                        summary_path = os.path.join(folder_path, "summary.json")
+                        if os.path.exists(summary_path):
+                            try:
+                                with open(summary_path, "r") as f:
+                                    contest_data = json.load(f)
+                                    meta = contest_data.get("metadata", {})
+                                    prog_name = meta.get("program_name", "General Contests")
+                                    
+                                    if target_program == "All" or prog_name == target_program:
+                                        program_contests.append((meta, contest_data))
+                            except Exception as e:
+                                print(f"Error reading summary for progress: {e}")
+            
+            # Sort by analyzed_at ascending for chronological progression
+            program_contests.sort(key=lambda x: x[0].get("analyzed_at", ""))
+            
+            for meta, data in program_contests:
+                c_key = meta.get("contest_key")
+                c_name = meta.get("contest_name")
+                total_questions = len(data.get("problems", {}))
+                
+                progress_data["contests"].append({
+                    "contest_key": c_key,
+                    "contest_name": c_name,
+                    "total_questions": total_questions,
+                    "analyzed_at": meta.get("analyzed_at", "")
+                })
+                
+                for email, s_info in data.get("students", {}).items():
+                    if email not in progress_data["students"]:
+                        progress_data["students"][email] = {
+                            "email": email,
+                            "user_id": s_info.get("user_id"),
+                            "history": {}
+                        }
+                    progress_data["students"][email]["history"][c_key] = {
+                        "solved_count": s_info.get("solved_count", 0),
+                        "attempted_count": s_info.get("attempted_count", 0)
+                    }
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+            self.end_headers()
+            self.wfile.write(json.dumps(progress_data).encode('utf-8'))
+            return
+
         return super().do_GET()
 
     def do_POST(self):
@@ -244,6 +313,7 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 query = parse_qs(parsed_url.query)
                 filename = query.get("filename", ["contest.json"])[0]
                 contest_name = query.get("contest_name", [None])[0]
+                program_name = query.get("program_name", [None])[0]
                 
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length)
@@ -268,7 +338,12 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     
                 # Run the analysis
                 dry_run = os.environ.get("OPENAI_API_KEY") is None
-                report_data = run_analysis(file_path, dry_run=dry_run, contest_name=contest_name)
+                report_data = run_analysis(
+                    file_path, 
+                    dry_run=dry_run, 
+                    contest_name=contest_name, 
+                    program_name=program_name
+                )
                 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -287,6 +362,72 @@ class DashboardHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 response = {
                     "success": False,
                     "message": f"Server error during analysis: {str(e)}"
+                }
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            return
+
+        if parsed_url.path == "/api/reanalyze":
+            try:
+                query = parse_qs(parsed_url.query)
+                contest_key = query.get("contest_key", [None])[0]
+                if not contest_key:
+                    raise Exception("contest_key parameter is required")
+                
+                # Locate raw file
+                raw_filename = f"{contest_key}.json"
+                raw_file_path = os.path.join("data", "contests", raw_filename)
+                
+                if not os.path.exists(raw_file_path):
+                    # Try finding source_file in summary.json
+                    summary_path = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key, "summary.json")
+                    if os.path.exists(summary_path):
+                        with open(summary_path, "r") as f:
+                            sum_data = json.load(f)
+                            source_file = sum_data.get("metadata", {}).get("source_file")
+                            if source_file:
+                                raw_file_path = os.path.join("data", "contests", source_file)
+                
+                if not os.path.exists(raw_file_path):
+                    raise Exception(f"Raw submissions file not found for: {contest_key}")
+                    
+                if os.environ.get("OPENAI_API_KEY") is None:
+                    raise Exception("OPENAI_API_KEY environment variable is not configured. Cannot perform AI critique.")
+                
+                # Fetch original contest and program name
+                contest_name = None
+                program_name = None
+                summary_path = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key, "summary.json")
+                if os.path.exists(summary_path):
+                    with open(summary_path, "r") as f:
+                        sum_data = json.load(f)
+                        meta = sum_data.get("metadata", {})
+                        contest_name = meta.get("contest_name")
+                        program_name = meta.get("program_name")
+                
+                report_data = run_analysis(
+                    raw_file_path, 
+                    dry_run=False, 
+                    contest_name=contest_name, 
+                    program_name=program_name
+                )
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                response = {
+                    "success": True,
+                    "contest_key": contest_key,
+                    "message": "AI analysis completed successfully!"
+                }
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            except Exception as e:
+                print(f"Error during re-analysis: {e}")
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                response = {
+                    "success": False,
+                    "message": f"AI Analysis failed: {str(e)}"
                 }
                 self.wfile.write(json.dumps(response).encode('utf-8'))
             return
@@ -319,6 +460,7 @@ def main():
     analyze_parser.add_argument("--dry-run", action="store_true", help="Pre-process data locally without calling OpenAI")
     analyze_parser.add_argument("--limit", type=int, default=None, help="Limit number of students analyzed via OpenAI API")
     analyze_parser.add_argument("--name", type=str, default=None, help="Name of the contest")
+    analyze_parser.add_argument("--program", type=str, default=None, help="Name of the program/cohort")
 
     # Serve subparser
     serve_parser = subparsers.add_parser("serve", help="Launch the local web dashboard server")
@@ -327,7 +469,7 @@ def main():
     args = parser_arg.parse_args()
 
     if args.command == "analyze":
-        run_analysis(args.file, args.dry_run, args.limit, contest_name=args.name)
+        run_analysis(args.file, args.dry_run, args.limit, contest_name=args.name, program_name=args.program)
     elif args.command == "serve":
         start_server(args.port)
     else:

@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let appData = null;
   let activeStudentEmail = null;
   let activeQuestionId = null;
+  let cachedContests = [];
+  let progressData = null;
 
   // Cache DOM elements
   const tabButtons = document.querySelectorAll(".nav-tab");
@@ -18,47 +20,91 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalCompareTabs = document.querySelectorAll(".compare-tab");
 
   // New DOM elements
+  const programSelector = document.getElementById("program-selector");
   const contestSelector = document.getElementById("contest-selector");
   const uploadBtn = document.getElementById("upload-btn");
   const fileInput = document.getElementById("contest-file-input");
   const uploadStatus = document.getElementById("upload-status-indicator");
+  const reanalyzeBtn = document.getElementById("reanalyze-btn");
 
   // Load available contests list
   async function loadContestsList(selectKey = null) {
     try {
       const res = await fetch("/api/contests");
       if (!res.ok) throw new Error();
-      const contests = await res.json();
+      cachedContests = await res.json();
       
-      contestSelector.innerHTML = "";
-      if (contests.length === 0) {
-        contestSelector.innerHTML = '<option value="">No contests uploaded</option>';
-        loadContestData(null);
-        return;
-      }
+      // Populate Program Selector
+      const currentProgram = programSelector.value || "All";
+      const uniquePrograms = ["All", ...new Set(cachedContests.map(c => c.program_name || "General Contests"))];
       
-      contests.forEach(c => {
+      programSelector.innerHTML = "";
+      uniquePrograms.forEach(prog => {
         const opt = document.createElement("option");
-        opt.value = c.key;
-        opt.textContent = c.contest_name || c.source_file;
-        contestSelector.appendChild(opt);
+        opt.value = prog;
+        opt.textContent = prog === "All" ? "All Programs" : prog;
+        programSelector.appendChild(opt);
       });
       
-      // Auto-select contest
+      // Determine what program to select
+      let targetProgram = currentProgram;
       if (selectKey) {
-        contestSelector.value = selectKey;
-      } else if (contests.length > 0) {
-        contestSelector.value = contests[0].key;
+        const uploadedContest = cachedContests.find(c => c.key === selectKey);
+        if (uploadedContest) {
+          targetProgram = uploadedContest.program_name || "General Contests";
+        }
       }
       
-      // Load selected contest data
-      if (contestSelector.value) {
-        loadContestData(contestSelector.value);
+      if (uniquePrograms.includes(targetProgram)) {
+        programSelector.value = targetProgram;
       } else {
-        loadContestData(null);
+        programSelector.value = "All";
       }
+      
+      updateContestSelector(selectKey);
     } catch (err) {
       console.error("Failed to fetch contests directory list:", err);
+      loadContestData(null);
+    }
+  }
+
+  // Update contest dropdown based on selected program
+  function updateContestSelector(selectKey = null) {
+    const selectedProgram = programSelector.value;
+    const filteredContests = cachedContests.filter(c => {
+      if (selectedProgram === "All") return true;
+      return (c.program_name || "General Contests") === selectedProgram;
+    });
+    
+    contestSelector.innerHTML = "";
+    if (filteredContests.length === 0) {
+      contestSelector.innerHTML = '<option value="">No contests in program</option>';
+      loadContestData(null);
+      return;
+    }
+    
+    filteredContests.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.key;
+      opt.textContent = c.contest_name || c.source_file;
+      contestSelector.appendChild(opt);
+    });
+    
+    // Auto-select contest key
+    if (selectKey && filteredContests.some(c => c.key === selectKey)) {
+      contestSelector.value = selectKey;
+    } else if (filteredContests.length > 0) {
+      const prevVal = contestSelector.value;
+      if (prevVal && filteredContests.some(c => c.key === prevVal)) {
+        contestSelector.value = prevVal;
+      } else {
+        contestSelector.value = filteredContests[0].key;
+      }
+    }
+    
+    if (contestSelector.value) {
+      loadContestData(contestSelector.value);
+    } else {
       loadContestData(null);
     }
   }
@@ -86,17 +132,34 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `;
       }
-      document.getElementById("meta-contest-name").textContent = "N/A";
-      document.getElementById("meta-file").textContent = "N/A";
-      document.getElementById("meta-students").textContent = "-";
-      document.getElementById("meta-submissions").textContent = "-";
-      document.getElementById("stat-total-students").textContent = "-";
-      document.getElementById("stat-total-submissions").textContent = "-";
-      document.getElementById("stat-success-rate").textContent = "-";
-      document.getElementById("stat-avg-attempts").textContent = "-";
-      document.getElementById("problems-table-body").innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">No contest data loaded.</td></tr>`;
-      document.getElementById("problems-list").innerHTML = `<div class="empty-message">No problems loaded. Select a contest.</div>`;
-      document.getElementById("students-list").innerHTML = `<div class="empty-message">No students loaded. Select a contest.</div>`;
+      const metaContest = document.getElementById("meta-contest-name");
+      if (metaContest) metaContest.textContent = "N/A";
+      const metaFile = document.getElementById("meta-file");
+      if (metaFile) metaFile.textContent = "N/A";
+      const metaStudents = document.getElementById("meta-students");
+      if (metaStudents) metaStudents.textContent = "-";
+      const metaSubmissions = document.getElementById("meta-submissions");
+      if (metaSubmissions) metaSubmissions.textContent = "-";
+      
+      const statTotalStudents = document.getElementById("stat-total-students");
+      if (statTotalStudents) statTotalStudents.textContent = "-";
+      const statTotalSubmissions = document.getElementById("stat-total-submissions");
+      if (statTotalSubmissions) statTotalSubmissions.textContent = "-";
+      const statSuccessRate = document.getElementById("stat-success-rate") || document.getElementById("stat-avg-success");
+      if (statSuccessRate) statSuccessRate.textContent = "-";
+      const statAvgAttempts = document.getElementById("stat-avg-attempts");
+      if (statAvgAttempts) statAvgAttempts.textContent = "-";
+      
+      const problemsTableBody = document.getElementById("problems-table-body") || document.querySelector("#problems-summary-table tbody");
+      if (problemsTableBody) {
+        problemsTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No contest data loaded.</td></tr>`;
+      }
+      
+      const problemsList = document.getElementById("problems-list");
+      if (problemsList) problemsList.innerHTML = `<div class="empty-message">No problems loaded. Select a contest.</div>`;
+      
+      const studentsList = document.getElementById("students-list");
+      if (studentsList) studentsList.innerHTML = `<div class="empty-message">No students loaded. Select a contest.</div>`;
       return;
     }
     
@@ -137,10 +200,60 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Handle program dropdown selection
+  programSelector.addEventListener("change", () => {
+    updateContestSelector();
+    const activeTab = document.querySelector(".nav-tab.active").getAttribute("data-tab");
+    if (activeTab === "progress") {
+      loadProgressData(programSelector.value || "All");
+    }
+  });
+
   // Handle contest dropdown selection
   contestSelector.addEventListener("change", () => {
     if (contestSelector.value) {
       loadContestData(contestSelector.value);
+    }
+  });
+
+  // Handle Run AI Critique
+  reanalyzeBtn.addEventListener("click", async () => {
+    if (!contestSelector.value) {
+      alert("No contest selected to analyze.");
+      return;
+    }
+    
+    const confirmRe = confirm("Are you sure you want to run full AI Critique on this contest? This will invoke OpenAI's API model and may take a moment.");
+    if (!confirmRe) return;
+    
+    reanalyzeBtn.disabled = true;
+    const originalText = reanalyzeBtn.innerHTML;
+    reanalyzeBtn.innerHTML = `
+      <span class="material-icons-round" style="font-size: 16px; animation: spin 1.5s infinite linear;">autorenew</span>
+      Analyzing...
+    `;
+    
+    try {
+      const res = await fetch(`/api/reanalyze?contest_key=${encodeURIComponent(contestSelector.value)}`, {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || "Failed to run AI Critique.");
+      }
+      alert(data.message || "AI Critique completed successfully!");
+      await loadContestData(contestSelector.value);
+      
+      const activeTab = document.querySelector(".nav-tab.active").getAttribute("data-tab");
+      if (activeTab === "progress") {
+        loadProgressData(programSelector.value || "All");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`AI Critique Failed: ${err.message}`);
+    } finally {
+      reanalyzeBtn.disabled = false;
+      reanalyzeBtn.innerHTML = originalText;
     }
   });
 
@@ -162,13 +275,16 @@ document.addEventListener("DOMContentLoaded", () => {
       fileInput.value = "";
       return;
     }
+
+    const programName = prompt("Please enter the Program/Cohort name (e.g. Placement Prep) [Optional, default: General Contests]:", "General Contests");
+    const cleanProgramName = programName !== null ? programName.trim() : "General Contests";
     
     uploadStatus.classList.remove("hidden");
     uploadStatus.textContent = "Analyzing...";
     
     try {
       const text = await file.text();
-      const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}&contest_name=${encodeURIComponent(cleanContestName)}`, {
+      const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}&contest_name=${encodeURIComponent(cleanContestName)}&program_name=${encodeURIComponent(cleanProgramName || "General Contests")}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: text
@@ -205,6 +321,11 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.add("active");
       const targetTab = btn.getAttribute("data-tab");
       document.getElementById(`tab-${targetTab}`).classList.add("active");
+      
+      // Load progress tracker if selected
+      if (targetTab === "progress") {
+        loadProgressData(programSelector.value || "All");
+      }
     });
   });
 
@@ -213,8 +334,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!appData) return;
 
     // Set header metadata
-    document.getElementById("meta-contest-name").textContent = appData.metadata.contest_name || appData.metadata.contest_key || "N/A";
-    document.getElementById("meta-file").textContent = appData.metadata.source_file;
+    const metaProg = document.getElementById("meta-program-name");
+    if (metaProg) metaProg.textContent = appData.metadata.program_name || "General Contests";
+    
+    const metaContest = document.getElementById("meta-contest-name");
+    if (metaContest) metaContest.textContent = appData.metadata.contest_name || appData.metadata.contest_key || "N/A";
+    
+    const metaFile = document.getElementById("meta-file");
+    if (metaFile) metaFile.textContent = appData.metadata.source_file;
+    
     document.getElementById("meta-students").textContent = appData.metadata.total_students;
     document.getElementById("meta-submissions").textContent = appData.metadata.total_submissions;
     
@@ -540,7 +668,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Parse timeline details
       const timelineLines = q.timeline_summary.split("\n\n");
-      timelineLines.forEach(lineBlock => {
+      timelineLines.forEach((lineBlock, idx) => {
         if (!lineBlock.trim()) return;
         const lines = lineBlock.split("\n");
         const header = lines[0]; // e.g. "Attempt 1 | Status: Wrong Answer | Tests Passed: 1"
@@ -570,14 +698,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const isAttempt1 = header.includes("Attempt 1 |") || header.includes("Attempt 1 ");
         
+        let codeButtonHTML = "";
+        if (q.attempts && q.attempts[idx]) {
+          codeButtonHTML = `
+            <button class="btn-sm btn-outline view-attempt-code" data-qid="${qid}" data-attempt-idx="${idx}" style="display:flex; align-items:center; gap:4px; padding:4px 8px; font-size:0.75rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); color:var(--text-secondary); border-radius:var(--border-radius-sm); cursor:pointer;" title="View the code submitted in this attempt.">
+              <span class="material-icons-round" style="font-size: 14px;">code</span>
+              View Code
+            </button>
+          `;
+        }
+
         timelineEventsHTML += `
           <div class="timeline-event-card ${eventColorClass}">
-            <div class="timeline-event-header">
+            <div class="timeline-event-header" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
               <div class="event-title ${titleColor}">
                 <span class="material-icons-round" style="font-size: 16px;">${icon}</span>
                 ${escapeHTML(header.split(" | ")[0])}: ${statusTitle}
               </div>
-              <div class="event-time">${escapeHTML(header.split(" | ")[2] || "")}</div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="event-time">${escapeHTML(header.split(" | ")[2] || "")}</div>
+                ${codeButtonHTML}
+              </div>
             </div>
             <div class="event-body">
               ${isAttempt1 && q.first_attempt_code ? `
@@ -697,6 +838,16 @@ document.addEventListener("DOMContentLoaded", () => {
         openCodeViewer(email, qid);
       });
     });
+
+    // Hook up individual attempt code viewers
+    document.querySelectorAll(".view-attempt-code").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation(); // prevent accordion toggle
+        const qid = btn.getAttribute("data-qid");
+        const attemptIdx = parseInt(btn.getAttribute("data-attempt-idx"));
+        openAttemptCodeViewer(email, qid, attemptIdx);
+      });
+    });
   }
 
   // Code Viewer Logic
@@ -708,15 +859,46 @@ document.addEventListener("DOMContentLoaded", () => {
     const q = s.attempts_details.find(d => String(d.question_id) === String(qid));
     if (!q) return;
 
+    // Hide the dynamic attempt tab
+    const attemptTab = document.getElementById("modal-tab-attempt");
+    attemptTab.style.display = "none";
+
+    // Select "Best" code tab by default
+    modalCompareTabs.forEach(t => t.classList.remove("active"));
+    document.querySelector('.compare-tab[data-code="best"]').classList.add("active");
+
     modalTitle.innerHTML = `Code Analysis: Student ${escapeHTML(email)} | Problem #${qid}`;
     modal.classList.add("active");
 
-    // Load active tab
-    const activeTab = document.querySelector(".compare-tab.active").getAttribute("data-code");
-    loadModalCode(activeTab, q);
+    loadModalCode("best", q);
   }
 
-  function loadModalCode(tabType, q) {
+  function openAttemptCodeViewer(email, qid, attemptIdx) {
+    activeStudentEmail = email;
+    activeQuestionId = qid;
+
+    const s = appData.students[email];
+    const q = s.attempts_details.find(d => String(d.question_id) === String(qid));
+    if (!q) return;
+
+    // Show the dynamic attempt tab
+    const attemptTab = document.getElementById("modal-tab-attempt");
+    attemptTab.style.display = "block";
+    const attemptNum = q.attempts[attemptIdx].attempt_index;
+    attemptTab.textContent = `Attempt ${attemptNum} Code`;
+    attemptTab.setAttribute("data-attempt-idx", attemptIdx);
+
+    // Make it active
+    modalCompareTabs.forEach(t => t.classList.remove("active"));
+    attemptTab.classList.add("active");
+
+    modalTitle.innerHTML = `Code Analysis: Student ${escapeHTML(email)} | Problem #${qid}`;
+    modal.classList.add("active");
+
+    loadModalCode("attempt", q, attemptIdx);
+  }
+
+  function loadModalCode(tabType, q, attemptIdx = null) {
     modalCodeDisplay.classList.remove("hidden");
     modalDiffDisplay.classList.add("hidden");
 
@@ -724,6 +906,13 @@ document.addEventListener("DOMContentLoaded", () => {
       modalCodeDisplay.textContent = q.best_attempt_code || "# No submission code captured.";
     } else if (tabType === "first") {
       modalCodeDisplay.textContent = q.first_attempt_code || "# No submission code captured.";
+    } else if (tabType === "attempt") {
+      const idx = attemptIdx !== null ? attemptIdx : parseInt(document.getElementById("modal-tab-attempt").getAttribute("data-attempt-idx"));
+      if (q.attempts && q.attempts[idx]) {
+        modalCodeDisplay.textContent = q.attempts[idx].source_code || "# No submission code captured.";
+      } else {
+        modalCodeDisplay.textContent = "# No submission code captured.";
+      }
     } else if (tabType === "diff") {
       modalCodeDisplay.classList.add("hidden");
       modalDiffDisplay.classList.remove("hidden");
@@ -762,6 +951,226 @@ document.addEventListener("DOMContentLoaded", () => {
       modal.classList.remove("active");
     }
   });
+
+  // Progress Tracker Logic
+  async function loadProgressData(programName) {
+    const listContainer = document.getElementById("progress-students-list");
+    const gridBody = document.getElementById("progress-grid-body");
+    const gridHeaders = document.getElementById("progress-grid-headers");
+    const trendCards = document.getElementById("milestones-trend-cards");
+    
+    listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading progress...</div>';
+    gridBody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--text-secondary);">Loading grid...</td></tr>';
+    trendCards.innerHTML = '<div style="text-align: center; padding: 10px; color: var(--text-secondary);">Loading trends...</div>';
+    
+    try {
+      const res = await fetch(`/api/progress?program=${encodeURIComponent(programName)}`);
+      if (!res.ok) throw new Error("Failed to load progress data");
+      progressData = await res.json();
+      
+      renderProgressTab();
+    } catch (err) {
+      console.error(err);
+      listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--accent-rose);">Failed to load progress.</div>';
+      gridBody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--accent-rose);">Error loading data.</td></tr>';
+      trendCards.innerHTML = '';
+    }
+  }
+
+  function renderProgressTab() {
+    if (!progressData) return;
+    
+    const listContainer = document.getElementById("progress-students-list");
+    const gridBody = document.getElementById("progress-grid-body");
+    const gridHeaders = document.getElementById("progress-grid-headers");
+    const trendCards = document.getElementById("milestones-trend-cards");
+    
+    listContainer.innerHTML = "";
+    gridBody.innerHTML = "";
+    
+    // Clear dynamic headers (remove everything after the first two columns)
+    const headerCols = Array.from(gridHeaders.querySelectorAll("th"));
+    headerCols.slice(2).forEach(col => col.remove());
+    
+    // Get list of sorted milestones
+    const milestones = progressData.contests || [];
+    document.getElementById("prog-stat-milestones").textContent = milestones.length;
+    
+    // Add dynamic milestone columns to the headers
+    milestones.forEach((m, idx) => {
+      const th = document.createElement("th");
+      th.textContent = `M${idx + 1}`;
+      th.title = m.contest_name || m.contest_key;
+      th.style.textAlign = "center";
+      gridHeaders.appendChild(th);
+    });
+    
+    const studentsList = Object.values(progressData.students || {});
+    document.getElementById("prog-stat-students").textContent = studentsList.length;
+    
+    if (studentsList.length === 0) {
+      listContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No student records found.</div>';
+      gridBody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--text-secondary);">No student data available.</td></tr>';
+      document.getElementById("prog-stat-solve-rate").textContent = "0%";
+      document.getElementById("prog-stat-trend").textContent = "N/A";
+      trendCards.innerHTML = "";
+      return;
+    }
+    
+    // Compute student stats
+    const totalMilestonesQuestions = milestones.reduce((sum, m) => sum + (m.total_questions || 0), 0);
+    
+    const studentsWithScores = studentsList.map(s => {
+      let solvedSum = 0;
+      milestones.forEach(m => {
+        const hist = s.history[m.contest_key];
+        if (hist) {
+          solvedSum += hist.solved_count || 0;
+        }
+      });
+      
+      const overallRate = totalMilestonesQuestions > 0 ? (solvedSum / totalMilestonesQuestions) : 0;
+      return {
+        ...s,
+        solvedSum,
+        overallRate
+      };
+    });
+    
+    // Sort students by solve rate descending
+    studentsWithScores.sort((a, b) => b.overallRate - a.overallRate);
+    
+    // Populate Sidebar & Milestones Grid
+    studentsWithScores.forEach(s => {
+      // 1. Sidebar Item
+      const item = document.createElement("div");
+      item.className = "list-item";
+      const pct = Math.round(s.overallRate * 100);
+      const rateColor = pct > 75 ? "font-green" : (pct < 40 ? "font-rose" : "font-orange");
+      
+      item.innerHTML = `
+        <div class="list-item-title">${escapeHTML(s.email)}</div>
+        <div class="list-item-meta">
+          <span>Milestones: ${Object.keys(s.history).length}/${milestones.length}</span>
+          <span class="${rateColor}">Pass: ${s.solvedSum}/${totalMilestonesQuestions} (${pct}%)</span>
+        </div>
+      `;
+      listContainer.appendChild(item);
+      
+      // 2. Grid Row
+      const tr = document.createElement("tr");
+      
+      // Student column
+      const tdEmail = document.createElement("td");
+      tdEmail.innerHTML = `<strong>${escapeHTML(s.email)}</strong>`;
+      tr.appendChild(tdEmail);
+      
+      // Overall progress column
+      const tdProgress = document.createElement("td");
+      tdProgress.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="${rateColor}" style="font-weight:600; min-width: 32px;">${pct}%</span>
+          <div class="progress-bar-bg" style="width: 80px; height: 6px;">
+            <div class="progress-bar-fill ${pct > 75 ? 'green' : (pct < 40 ? 'rose' : 'orange')}" style="width: ${pct}%"></div>
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-secondary);">${s.solvedSum}/${totalMilestonesQuestions}</span>
+        </div>
+      `;
+      tr.appendChild(tdProgress);
+      
+      // Milestone columns
+      milestones.forEach(m => {
+        const tdM = document.createElement("td");
+        tdM.style.textAlign = "center";
+        
+        const hist = s.history[m.contest_key];
+        if (hist && hist.attempted_count > 0) {
+          const mPct = m.total_questions > 0 ? Math.round((hist.solved_count / m.total_questions) * 100) : 0;
+          let badgeClass = "badge-rose";
+          if (mPct === 100) badgeClass = "badge-green";
+          else if (mPct >= 50) badgeClass = "badge-cyan";
+          else if (mPct > 0) badgeClass = "badge-orange";
+          
+          tdM.innerHTML = `<span class="milestone-badge ${badgeClass}">${hist.solved_count}/${m.total_questions}</span>`;
+        } else {
+          tdM.innerHTML = `<span class="milestone-badge badge-gray">-</span>`;
+        }
+        tr.appendChild(tdM);
+      });
+      
+      gridBody.appendChild(tr);
+    });
+    
+    // Cohort overall statistics
+    const cohortSolveRate = totalMilestonesQuestions * studentsList.length > 0 
+      ? Math.round((studentsWithScores.reduce((sum, s) => sum + s.solvedSum, 0) / (totalMilestonesQuestions * studentsList.length)) * 100)
+      : 0;
+    document.getElementById("prog-stat-solve-rate").textContent = `${cohortSolveRate}%`;
+    
+    // Compute Milestone Cohort Performance Trends
+    trendCards.innerHTML = "";
+    let prevRate = null;
+    let lastTrendText = "Stable";
+    
+    milestones.forEach((m, idx) => {
+      let milestoneSolved = 0;
+      let studentsInMilestone = 0;
+      
+      studentsList.forEach(s => {
+        const hist = s.history[m.contest_key];
+        if (hist && hist.attempted_count > 0) {
+          milestoneSolved += hist.solved_count || 0;
+          studentsInMilestone++;
+        }
+      });
+      
+      const possibleSolved = m.total_questions * studentsInMilestone;
+      const milestoneRate = possibleSolved > 0 ? Math.round((milestoneSolved / possibleSolved) * 100) : 0;
+      
+      let trendIndicator = "";
+      if (prevRate !== null) {
+        const diff = milestoneRate - prevRate;
+        if (diff > 0) {
+          trendIndicator = `<span class="trend-up" style="color:var(--accent-green); display:flex; align-items:center; gap:2px; font-weight:600; font-size:0.8rem;"><span class="material-icons-round" style="font-size:14px;">trending_up</span>+${diff}%</span>`;
+          lastTrendText = "Improving";
+        } else if (diff < 0) {
+          trendIndicator = `<span class="trend-down" style="color:var(--accent-rose); display:flex; align-items:center; gap:2px; font-weight:600; font-size:0.8rem;"><span class="material-icons-round" style="font-size:14px;">trending_down</span>${diff}%</span>`;
+          lastTrendText = "Declining";
+        } else {
+          trendIndicator = `<span class="trend-flat" style="color:var(--text-secondary); display:flex; align-items:center; gap:2px; font-weight:600; font-size:0.8rem;"><span class="material-icons-round" style="font-size:14px;">trending_flat</span>0%</span>`;
+        }
+      }
+      prevRate = milestoneRate;
+      
+      const card = document.createElement("div");
+      card.className = "milestone-trend-card glass";
+      card.style.minWidth = "190px";
+      card.style.flex = "1";
+      card.style.padding = "16px";
+      card.style.borderRadius = "var(--border-radius-md)";
+      card.style.background = "rgba(255, 255, 255, 0.01)";
+      card.style.border = "1px solid var(--panel-border)";
+      card.style.display = "flex";
+      card.style.flexDirection = "column";
+      card.style.gap = "8px";
+      
+      card.innerHTML = `
+        <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Milestone ${idx + 1}</div>
+        <div style="font-size: 0.95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);" title="${escapeHTML(m.contest_name || m.contest_key)}">${escapeHTML(m.contest_name || m.contest_key)}</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+          <span style="font-size: 1.6rem; font-weight: 800; color: var(--accent-cyan);">${milestoneRate}%</span>
+          ${trendIndicator}
+        </div>
+        <div class="progress-bar-bg" style="height: 4px;">
+          <div class="progress-bar-fill cyan" style="width: ${milestoneRate}%"></div>
+        </div>
+        <div style="font-size: 0.7rem; color: var(--text-muted);">${studentsInMilestone} active students</div>
+      `;
+      trendCards.appendChild(card);
+    });
+    
+    document.getElementById("prog-stat-trend").textContent = lastTrendText;
+  }
 
   // Helper function to escape HTML
   function escapeHTML(str) {
