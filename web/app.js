@@ -38,6 +38,104 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadProgramNewGroup = document.getElementById("upload-program-new-group");
   const uploadProgramNewInput = document.getElementById("upload-program-new");
 
+  // Floating widget elements
+  const progressWidget = document.getElementById("analysis-progress-widget");
+  const widgetContestName = document.getElementById("widget-contest-name");
+  const widgetProgressText = document.getElementById("widget-progress-text");
+  const widgetProgressBar = document.getElementById("widget-progress-bar");
+  const widgetCost = document.getElementById("widget-cost");
+  const widgetCostLimit = document.getElementById("widget-cost-limit");
+  const widgetTokensIn = document.getElementById("widget-tokens-in");
+  const widgetTokensOut = document.getElementById("widget-tokens-out");
+  const widgetAbortBtn = document.getElementById("widget-abort-btn");
+  const uploadCostLimitInput = document.getElementById("upload-cost-limit");
+
+  let activePollInterval = null;
+  let activeContestKeyRunning = null;
+
+  function trackAnalysisProgress(contestKey, costLimit, contestName) {
+    if (activePollInterval) clearInterval(activePollInterval);
+    activeContestKeyRunning = contestKey;
+    
+    // Setup UI
+    widgetContestName.textContent = contestName;
+    widgetCostLimit.textContent = `$${costLimit.toFixed(2)}`;
+    widgetProgressText.textContent = "0 / 0";
+    widgetProgressBar.style.width = "0%";
+    widgetCost.textContent = "$0.0000";
+    widgetTokensIn.textContent = "0";
+    widgetTokensOut.textContent = "0";
+    widgetAbortBtn.disabled = false;
+    widgetAbortBtn.innerHTML = `
+      <span class="material-icons-round" style="font-size: 16px;">stop</span>
+      Stop & Save Progress
+    `;
+    
+    progressWidget.classList.remove("hidden");
+    
+    activePollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/analysis-status?contest_key=${encodeURIComponent(contestKey)}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        
+        // Update stats
+        const processed = data.processed_students || 0;
+        const total = data.total_students || 0;
+        widgetProgressText.textContent = `${processed} / ${total}`;
+        
+        const pct = total > 0 ? (processed / total) * 100 : 0;
+        widgetProgressBar.style.width = `${pct}%`;
+        
+        const costVal = data.cost_usd || 0.0;
+        widgetCost.textContent = `$${costVal.toFixed(4)}`;
+        
+        // If cost approaches the limit, add warning highlights
+        if (costVal >= costLimit * 0.9) {
+          widgetCost.style.color = "var(--accent-rose)";
+        } else {
+          widgetCost.style.color = "var(--accent-cyan)";
+        }
+        
+        widgetTokensIn.textContent = (data.prompt_tokens || 0).toLocaleString();
+        widgetTokensOut.textContent = (data.completion_tokens || 0).toLocaleString();
+        
+        // Check terminal statuses
+        if (data.status === "completed" || data.status === "aborted" || data.status === "failed") {
+          clearInterval(activePollInterval);
+          activePollInterval = null;
+          
+          if (data.status === "completed") {
+            showToast("Analysis Completed successfully!", "success");
+          } else if (data.status === "aborted") {
+            showToast("Analysis stopped. Progress saved.", "info");
+          } else {
+            showToast(`Analysis failed: ${data.error || "Unknown error"}`, "error");
+          }
+          
+          widgetAbortBtn.disabled = true;
+          setTimeout(() => {
+            progressWidget.classList.add("hidden");
+          }, 4000);
+          
+          // Reload contest list and auto-select
+          await loadContestsList(contestKey);
+          
+          const activeTab = document.querySelector(".nav-tab.active").getAttribute("data-tab");
+          if (activeTab === "progress") {
+            loadProgressData(programSelector.value || "All");
+          }
+        }
+      } catch (err) {
+        console.error("Error polling analysis status:", err);
+      }
+    }, 1000);
+  }
+  
+  function showToast(message, type = "info") {
+    console.log(`[Toast ${type}]: ${message}`);
+  }
+
 
   // Load available contests list
   async function loadContestsList(selectKey = null) {
@@ -235,31 +333,32 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    const confirmRe = confirm("Are you sure you want to run full AI Critique on this contest? This will invoke OpenAI's API model and may take a moment.");
+    const costLimitStr = prompt("Enter OpenAI cost threshold limit in USD for this analysis:", "0.50");
+    if (costLimitStr === null) return;
+    const costLimit = parseFloat(costLimitStr) || 0.50;
+    
+    const contestName = contestSelector.options[contestSelector.selectedIndex].text;
+    const confirmRe = confirm(`Are you sure you want to run AI Critique on "${contestName}" with a cost limit of $${costLimit.toFixed(2)}?`);
     if (!confirmRe) return;
     
     reanalyzeBtn.disabled = true;
     const originalText = reanalyzeBtn.innerHTML;
     reanalyzeBtn.innerHTML = `
       <span class="material-icons-round" style="font-size: 16px; animation: spin 1.5s infinite linear;">autorenew</span>
-      Analyzing...
+      Starting...
     `;
     
     try {
-      const res = await fetch(`/api/reanalyze?contest_key=${encodeURIComponent(contestSelector.value)}`, {
+      const res = await fetch(`/api/reanalyze?contest_key=${encodeURIComponent(contestSelector.value)}&cost_limit=${costLimit}`, {
         method: "POST"
       });
       const data = await res.json();
       if (!data.success) {
         throw new Error(data.message || "Failed to run AI Critique.");
       }
-      alert(data.message || "AI Critique completed successfully!");
-      await loadContestData(contestSelector.value);
       
-      const activeTab = document.querySelector(".nav-tab.active").getAttribute("data-tab");
-      if (activeTab === "progress") {
-        loadProgressData(programSelector.value || "All");
-      }
+      // Start real-time monitoring widget
+      trackAnalysisProgress(contestSelector.value, costLimit, contestName);
     } catch (err) {
       console.error(err);
       alert(`AI Critique Failed: ${err.message}`);
@@ -358,16 +457,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     const cleanProgramName = programName || "General Contests";
+    const costLimit = parseFloat(uploadCostLimitInput.value) || 0.50;
     
     // Close modal and start loading animation
     closeUploadConfigModal();
     
     uploadStatus.classList.remove("hidden");
-    uploadStatus.textContent = "Analyzing...";
+    uploadStatus.textContent = "Uploading...";
     
     try {
       const text = await currentUploadFile.text();
-      const res = await fetch(`/api/upload?filename=${encodeURIComponent(currentUploadFile.name)}&contest_name=${encodeURIComponent(cleanContestName)}&program_name=${encodeURIComponent(cleanProgramName)}`, {
+      const res = await fetch(`/api/upload?filename=${encodeURIComponent(currentUploadFile.name)}&contest_name=${encodeURIComponent(cleanContestName)}&program_name=${encodeURIComponent(cleanProgramName)}&cost_limit=${costLimit}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: text
@@ -378,15 +478,41 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(resData.message || "Failed to analyze.");
       }
       
-      uploadStatus.textContent = "Success!";
-      setTimeout(() => uploadStatus.classList.add("hidden"), 3000);
+      uploadStatus.textContent = "Started!";
+      setTimeout(() => uploadStatus.classList.add("hidden"), 2000);
       
-      // Reload contest list and select the new contest
-      await loadContestsList(resData.contest_key);
+      // Start tracking background progress
+      trackAnalysisProgress(resData.contest_key, costLimit, cleanContestName);
     } catch (err) {
       console.error(err);
       alert(`Upload Failed: ${err.message}`);
       uploadStatus.classList.add("hidden");
+    }
+  });
+
+  // Handle abort click
+  widgetAbortBtn.addEventListener("click", async () => {
+    if (!activeContestKeyRunning) return;
+    
+    widgetAbortBtn.disabled = true;
+    widgetAbortBtn.innerHTML = `
+      <span class="material-icons-round" style="font-size: 16px; animation: spin 1.5s infinite linear;">sync</span>
+      Stopping...
+    `;
+    
+    try {
+      const res = await fetch(`/api/abort-analysis?contest_key=${encodeURIComponent(activeContestKeyRunning)}`, {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+    } catch (err) {
+      console.error("Failed to abort analysis:", err);
+      widgetAbortBtn.disabled = false;
+      widgetAbortBtn.innerHTML = `
+        <span class="material-icons-round" style="font-size: 16px;">stop</span>
+        Stop & Save Progress
+      `;
     }
   });
 
