@@ -9,7 +9,13 @@
     "total_questions": 3,
     "total_submissions": 741,
     "dry_run": true,
-    "openai_api_used": false
+    "openai_api_used": true,
+    "accumulated_openai_cost_usd": 0.0,
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "assignment_ids": [
+      84421
+    ]
   },
   "problems": {
     "23814": {
@@ -126,7 +132,10 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "ai_critique_completed": true,
+      "custom_feedback": "Good job. Needs to optimize binary search implementation.",
+      "assignment_id": 84421
     },
     "saloni.s23csai@nst.rishihood.edu.in": {
       "user_id": 1440697,
@@ -271,7 +280,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "aryan.s23csai@nst.rishihood.edu.in": {
       "user_id": 1424826,
@@ -405,7 +415,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "raman.l23csai@nst.rishihood.edu.in": {
       "user_id": 1422268,
@@ -551,7 +562,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "ankush.23csai@nst.rishihood.edu.in": {
       "user_id": 1438633,
@@ -636,7 +648,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "cmurali.m23csai@nst.rishihood.edu.in": {
       "user_id": 1399491,
@@ -764,7 +777,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "dibyajyoti.b23csai@nst.rishihood.edu.in": {
       "user_id": 1435027,
@@ -886,7 +900,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "samyak.m23csai@nst.rishihood.edu.in": {
       "user_id": 1454687,
@@ -971,7 +986,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "harsh.g23csai@nst.rishihood.edu.in": {
       "user_id": 1454830,
@@ -1062,7 +1078,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "samarth.s23csai@nst.rishihood.edu.in": {
       "user_id": 1385621,
@@ -1153,7 +1170,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "dally.r23csai@nst.rishihood.edu.in": {
       "user_id": 1450684,
@@ -1268,7 +1286,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "vivek.23csai@nst.rishihood.edu.in": {
       "user_id": 1421622,
@@ -1324,7 +1343,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "amod.r23csai@nst.rishihood.edu.in": {
       "user_id": 1432227,
@@ -1446,7 +1466,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "divyanshi.s23csai@nst.rishihood.edu.in": {
       "user_id": 1450363,
@@ -1555,7 +1576,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "prerak.a23csai@nst.rishihood.edu.in": {
       "user_id": 1396155,
@@ -1647,7 +1669,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "sanskar.s23csai@nst.rishihood.edu.in": {
       "user_id": 1431932,
@@ -1701,7 +1724,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "suyash.p23csai@nst.rishihood.edu.in": {
       "user_id": 1431460,
@@ -1834,7 +1858,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "prabhat.k23csai@nst.rishihood.edu.in": {
       "user_id": 1434440,
@@ -2040,7 +2065,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "shah.k23csai@nst.rishihood.edu.in": {
       "user_id": 1414347,
@@ -2159,7 +2185,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "soniya.m23csai@nst.rishihood.edu.in": {
       "user_id": 182517,
@@ -2245,7 +2272,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "udita.23csai@nst.rishihood.edu.in": {
       "user_id": 1423412,
@@ -2366,7 +2394,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "shiven.a23csai@nst.rishihood.edu.in": {
       "user_id": 1430865,
@@ -2458,7 +2487,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "mehak.j23csai@nst.rishihood.edu.in": {
       "user_id": 1419244,
@@ -2583,7 +2613,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "kartik.y23csai@nst.rishihood.edu.in": {
       "user_id": 1436189,
@@ -2729,7 +2760,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "jamathziah.23csai@nst.rishihood.edu.in": {
       "user_id": 1398684,
@@ -2875,7 +2907,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "mahendra.p23csai@nst.rishihood.edu.in": {
       "user_id": 1460125,
@@ -2966,7 +2999,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "ashwin.s23csai@nst.rishihood.edu.in": {
       "user_id": 1424156,
@@ -3082,7 +3116,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "pranay.s23csai@nst.rishihood.edu.in": {
       "user_id": 1418238,
@@ -3179,7 +3214,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "akula.j23csai@nst.rishihood.edu.in": {
       "user_id": 1448721,
@@ -3276,7 +3312,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "ajtkr200@gmail.com": {
       "user_id": 1395838,
@@ -3386,7 +3423,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "abhay.r23csai@nst.rishihood.edu.in": {
       "user_id": 1420475,
@@ -3532,7 +3570,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "shivansh.g23csai@nst.rishihood.edu.in": {
       "user_id": 1429713,
@@ -3642,7 +3681,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "mann.v23csai@nst.rishihood.edu.in": {
       "user_id": 1446197,
@@ -3787,7 +3827,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "subham.m23csai@nst.rishihood.edu.in": {
       "user_id": 381375,
@@ -3908,7 +3949,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "ayush.g23csai@nst.rishihood.edu.in": {
       "user_id": 1445045,
@@ -4023,7 +4065,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "sansar.t23csai@nst.rishihood.edu.in": {
       "user_id": 1432162,
@@ -4143,7 +4186,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "aviral.s23csai@nst.rishihood.edu.in": {
       "user_id": 1451145,
@@ -4277,7 +4321,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "bhavishya.s23csai@nst.rishihood.edu.in": {
       "user_id": 1446007,
@@ -4361,7 +4406,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "agrapujya.l23csai@nst.rishihood.edu.in": {
       "user_id": 1385272,
@@ -4471,7 +4517,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "deepanshu.m23csai@nst.rishihood.edu.in": {
       "user_id": 1436109,
@@ -4635,7 +4682,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "yashi.g23csai@nst.rishihood.edu.in": {
       "user_id": 1440607,
@@ -4727,7 +4775,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "prince.s23csai@nst.rishihood.edu.in": {
       "user_id": 1391916,
@@ -4855,7 +4904,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "vishesh.23csai@nst.rishihood.edu.in": {
       "user_id": 1452055,
@@ -4999,7 +5049,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "aman.ku23csai@nst.rishihood.edu.in": {
       "user_id": 1434982,
@@ -5059,7 +5110,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "kalash.k23csai@nst.rishihood.edu.in": {
       "user_id": 1458288,
@@ -5245,7 +5297,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "piyush.23csai@nst.rishihood.edu.in": {
       "user_id": 1442231,
@@ -5414,7 +5467,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "abhishek.m23csai@nst.rishihood.edu.in": {
       "user_id": 1436389,
@@ -5530,7 +5584,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "pranay.v23csai@nst.rishihood.edu.in": {
       "user_id": 1427142,
@@ -5637,7 +5692,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "asmit.k23csai@nst.rishihood.edu.in": {
       "user_id": 1440393,
@@ -5729,7 +5785,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "sahil.s23csai@nst.rishihood.edu.in": {
       "user_id": 1451133,
@@ -5886,7 +5943,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "akash.g23csai@nst.rishihood.edu.in": {
       "user_id": 1413119,
@@ -5972,7 +6030,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "prashant.k23csai@nst.rishihood.edu.in": {
       "user_id": 1388166,
@@ -6086,7 +6145,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "pichuka.b23csai@nst.rishihood.edu.in": {
       "user_id": 1392567,
@@ -6261,7 +6321,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "sourabh.s23csai@nst.rishihood.edu.in": {
       "user_id": 1408847,
@@ -6358,7 +6419,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "vaishnav.v23csai@nst.rishihood.edu.in": {
       "user_id": 1438702,
@@ -6498,7 +6560,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "soumyaranjan.b23csai@nst.rishihood.edu.in": {
       "user_id": 1416474,
@@ -6602,7 +6665,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "nikhil.r23csai@nst.rishihood.edu.in": {
       "user_id": 1408079,
@@ -6753,7 +6817,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "ravi.y23csai@nst.rishihood.edu.in": {
       "user_id": 1460339,
@@ -6843,7 +6908,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "belal.r23csai@nst.rishihood.edu.in": {
       "user_id": 1460024,
@@ -6970,7 +7036,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "aditya.s23csai@nst.rishihood.edu.in": {
       "user_id": 1415771,
@@ -7024,7 +7091,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "himanshu.23csai@nst.rishihood.edu.in": {
       "user_id": 1391299,
@@ -7146,7 +7214,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "kanhaiya.k23csai@nst.rishihood.edu.in": {
       "user_id": 1428072,
@@ -7285,7 +7354,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "meenaksh.s23csai@nst.rishihood.edu.in": {
       "user_id": 1391444,
@@ -7404,7 +7474,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "meesala.s23csai@nst.rishihood.edu.in": {
       "user_id": 1429675,
@@ -7592,7 +7663,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "priyanshu.j23csai@nst.rishihood.edu.in": {
       "user_id": 1435943,
@@ -7708,7 +7780,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "ritik.r23csai@nst.rishihood.edu.in": {
       "user_id": 1434180,
@@ -7806,7 +7879,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "rhythm.j23csai@nst.rishihood.edu.in": {
       "user_id": 1449912,
@@ -7933,7 +8007,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "nilesh.c23csai@nst.rishihood.edu.in": {
       "user_id": 1428603,
@@ -7987,7 +8062,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "athawale.s23csai@nst.rishihood.edu.in": {
       "user_id": 1432597,
@@ -8084,7 +8160,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "pugazhendhi.j23csai@nst.rishihood.edu.in": {
       "user_id": 1436518,
@@ -8260,7 +8337,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "eranki.v23csai@nst.rishihood.edu.in": {
       "user_id": 1391881,
@@ -8381,7 +8459,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "gangadhar.y23csai@nst.rishihood.edu.in": {
       "user_id": 1043009,
@@ -8514,7 +8593,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "karthik.r23csai@nst.rishihood.edu.in": {
       "user_id": 1395047,
@@ -8630,7 +8710,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "amyeeshu.23csai@nst.rishihood.edu.in": {
       "user_id": 1449200,
@@ -8764,7 +8845,8 @@
           "title": "Next Greater Element",
           "description": "Given an array, find the Next Greater Element (NGE) for every element. The NGE for an element x is the first greater element on its right. If no greater element exists, output -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "siddhartha.s23csai@nst.rishihood.edu.in": {
       "user_id": 1423773,
@@ -8849,7 +8931,8 @@
           "title": "First Occurrence of One",
           "description": "Find the index of the first occurrence of the number 1 in a sorted binary array containing only 0s and 1s. If 1 is not present, return -1."
         }
-      ]
+      ],
+      "assignment_id": 84421
     },
     "kush.a23csai@nst.rishihood.edu.in": {
       "user_id": 1415705,
@@ -8982,7 +9065,8 @@
           "title": "Trapping Rain Water",
           "description": "Given an array of n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining."
         }
-      ]
+      ],
+      "assignment_id": 84421
     }
   }
 }

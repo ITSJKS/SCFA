@@ -1,0 +1,220 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Default: Professional Dark Theme */
+    --bg-color: #0b0f19;
+    --panel-bg: #111827;
+    --panel-bg-solid: #111827;
+    --panel-border: rgba(255, 255, 255, 0.06);
+    --header-bg: #0f172a;
+    --header-border: rgba(255, 255, 255, 0.08);
+    
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    
+    --accent-cyan: #38bdf8;
+    --accent-purple: #a855f7;
+    --accent-green: #22c55e;
+    --accent-rose: #f43f5e;
+    --accent-orange: #f59e0b;
+
+    --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+    --glow-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+    --glow-shadow-purple: 0 0 10px rgba(168, 85, 247, 0.15);
+
+    --bg-surface-input: rgba(255, 255, 255, 0.03);
+    --bg-surface-hover: rgba(255, 255, 255, 0.04);
+    --bg-surface-active: rgba(255, 255, 255, 0.08);
+  }
+
+  .theme-light {
+    /* Premium Light Theme */
+    --bg-color: #f8fafc;
+    --panel-bg: #ffffff;
+    --panel-bg-solid: #ffffff;
+    --panel-border: #e2e8f0;
+    --header-bg: #ffffff;
+    --header-border: #e2e8f0;
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    
+    --accent-cyan: #0284c7;
+    --accent-purple: #7c3aed;
+    --accent-green: #16a34a;
+    --accent-rose: #dc2626;
+    --accent-orange: #ea580c;
+
+    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --glow-shadow: 0 0 10px rgba(2, 132, 199, 0.05);
+    --glow-shadow-purple: 0 0 10px rgba(124, 58, 237, 0.05);
+
+    --bg-surface-input: #f1f5f9;
+    --bg-surface-hover: #f1f5f9;
+    --bg-surface-active: #e2e8f0;
+  }
+
+  .theme-dark {
+    --bg-color: #0b0f19;
+    --panel-bg: #111827;
+    --panel-bg-solid: #111827;
+    --panel-border: rgba(255, 255, 255, 0.06);
+    --header-bg: #0f172a;
+    --header-border: rgba(255, 255, 255, 0.08);
+    
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    
+    --accent-cyan: #38bdf8;
+    --accent-purple: #a855f7;
+    --accent-green: #22c55e;
+    --accent-rose: #f43f5e;
+    --accent-orange: #f59e0b;
+
+    --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+    --glow-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+    --glow-shadow-purple: 0 0 10px rgba(168, 85, 247, 0.15);
+
+    --bg-surface-input: rgba(255, 255, 255, 0.03);
+    --bg-surface-hover: rgba(255, 255, 255, 0.04);
+    --bg-surface-active: rgba(255, 255, 255, 0.08);
+  }
+}
+
+@theme {
+  --color-darkBg: var(--bg-color);
+  --color-panelBg: var(--panel-bg);
+  --color-panelBorder: var(--panel-border);
+  --color-headerBg: var(--header-bg);
+  --color-headerBorder: var(--header-border);
+  
+  --color-textPrimary: var(--text-primary);
+  --color-textSecondary: var(--text-secondary);
+  --color-textMuted: var(--text-muted);
+  
+  --color-accentCyan: var(--accent-cyan);
+  --color-accentPurple: var(--accent-purple);
+  --color-accentGreen: var(--accent-green);
+  --color-accentRose: var(--accent-rose);
+  --color-accentOrange: var(--accent-orange);
+
+  --color-bgSurfaceInput: var(--bg-surface-input);
+  --color-bgSurfaceHover: var(--bg-surface-hover);
+  --color-bgSurfaceActive: var(--bg-surface-active);
+  --color-panelBgSolid: var(--panel-bg-solid);
+
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+  
+  --shadow-card: var(--card-shadow);
+  --shadow-glow: var(--glow-shadow);
+  --shadow-glowPurple: var(--glow-shadow-purple);
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  overflow-x: hidden;
+}
+
+/* Smooth theme transitions */
+header, nav, main, .glass-panel, .glass-card, button, select, input, textarea {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Scrollbar tweaks */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.theme-light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Glassmorphism panel styling */
+.glass-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--card-shadow);
+}
+
+/* Premium card styling */
+.glass-card {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+}
+
+.theme-light .glass-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.glass-card:hover {
+  background: var(--bg-surface-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.theme-light .glass-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Logo pulse animations */
+@keyframes ping-slow {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 4s infinite ease-in-out;
+}
+
+/* Shared design typography definitions */
+.dashboard-title {
+  font-size: 1.125rem; /* 18px */
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.section-title {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+/* Micro-interaction transitions */
+button:active {
+  transform: scale(0.98);
+}

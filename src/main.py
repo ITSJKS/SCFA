@@ -3,7 +3,9 @@ import sys
 import json
 import argparse
 import threading
+import queue
 from datetime import datetime
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Query, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -14,10 +16,22 @@ import hmac
 import hashlib
 import base64
 
+# Load environment variables from .env
+load_dotenv()
+
 # Security Configuration
-SECRET_KEY = os.environ.get("SECRET_KEY", "scfa_default_secret_key_123_change_me")
+import secrets
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY or SECRET_KEY == "scfa_default_secret_key_123_change_me":
+    SECRET_KEY = secrets.token_hex(32)
+    print("⚠️ WARNING: SECRET_KEY not configured or using unsafe default. Generated a random secure key for this session.")
+
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 FACULTY_PASSWORD = os.environ.get("FACULTY_PASSWORD", "faculty123")
+
+def validate_contest_key(contest_key: str):
+    if not contest_key or not all(c.isalnum() or c in ('-', '_') for c in contest_key):
+        raise HTTPException(status_code=400, detail="Invalid contest key format. Only alphanumeric, dashes, and underscores are allowed.")
 
 class LoginRequest(BaseModel):
     role: str
@@ -69,6 +83,7 @@ DEFAULT_SUBMISSIONS_DIR = "reports/correct_submissions"
 # Global state for tracking running background analyses and user aborts
 ACTIVE_ANALYSES = {}
 ACTIVE_ANALYSES_LOCK = threading.Lock()
+ANALYSIS_QUEUE = queue.Queue()
 
 def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, contest_name=None, program_name=None, cost_limit=0.50, custom_api_key=None):
     print(f"🚀 Starting analysis for submissions file: {file_path}")
@@ -195,6 +210,8 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
         if email in existing_students:
             estudent = existing_students[email]
             if estudent.get("ai_critique_completed") and estudent.get("total_submissions") == len(s_subs):
+                if "assignment_id" not in estudent:
+                    estudent["assignment_id"] = s_subs[0]["assignment_id"] if s_subs else None
                 students_summary[email] = estudent
                 continue
 
@@ -219,6 +236,7 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
         students_summary[email] = {
             "user_id": uid,
             "email": email,
+            "assignment_id": s_subs[0]["assignment_id"] if s_subs else None,
             "total_submissions": len(s_subs),
             "solved_count": len(solved_qids),
             "attempted_count": len(attempted_qids),
@@ -230,6 +248,56 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
         }
         if email in existing_students and "custom_feedback" in existing_students[email]:
             students_summary[email]["custom_feedback"] = existing_students[email]["custom_feedback"]
+
+    summary_path = os.path.join(output_dir, "summary.json")
+
+    # If this is a dry run (AI critique off), skip the slow incremental OpenAI loop entirely
+    if dry_run:
+        print("Dry-run mode: Skipping AI critique feedback loop and finalizing report.")
+        sys.stdout.flush()
+        
+        with ACTIVE_ANALYSES_LOCK:
+            ACTIVE_ANALYSES[contest_key] = {
+                "status": "completed",
+                "processed_students": len(student_groups),
+                "total_students": len(student_groups),
+                "cost_usd": 0.0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "aborted": False,
+                "dry_run": True
+            }
+            
+        os.makedirs(output_dir, exist_ok=True)
+        report_data = {
+            "metadata": {
+                "contest_key": contest_key,
+                "contest_name": contest_name,
+                "program_name": program_name,
+                "source_file": os.path.basename(file_path),
+                "analyzed_at": datetime.now().isoformat(),
+                "total_students": len(student_groups),
+                "total_questions": len(problem_groups),
+                "total_submissions": len(submissions),
+                "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
+                "dry_run": True,
+                "openai_api_used": False,
+                "accumulated_openai_cost_usd": 0.0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "aborted_by_user": False,
+                "cost_limit_reached": False
+            },
+            "problems": problems_summary,
+            "students": students_summary
+        }
+        with open(summary_path, "w") as f:
+            json.dump(report_data, f, indent=2)
+            
+        print(f"\n✅ Analysis complete (Dry Run)!")
+        print(f"📊 Contest summary saved to: {summary_path}")
+        sys.stdout.flush()
+        return report_data
 
     print("Pre-population complete. Running AI feedback loop...")
     sys.stdout.flush()
@@ -247,110 +315,125 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "cost_usd": 0.0,
             "prompt_tokens": 0,
             "completion_tokens": 0,
-            "aborted": False
+            "aborted": False,
+            "dry_run": dry_run
         }
 
     summary_path = os.path.join(output_dir, "summary.json")
 
-    for idx, (email, s_data) in enumerate(student_groups.items()):
-        # 1. Check user abort flag
-        is_aborted = False
+    class AnalysisAbortedException(Exception):
+        pass
+
+    def check_abort():
         with ACTIVE_ANALYSES_LOCK:
             if contest_key in ACTIVE_ANALYSES and ACTIVE_ANALYSES[contest_key].get("aborted"):
-                is_aborted = True
-        if is_aborted:
-            print(f"🛑 Analysis aborted by user. Exiting loop at student {idx+1}/{len(student_groups)}.")
-            sys.stdout.flush()
-            aborted_by_user = True
-            break
+                raise AnalysisAbortedException("Aborted by user")
 
-        # 2. Check cost limit
-        cost_info = llm_client.get_current_cost()
-        if cost_info["cost_usd"] >= cost_limit:
-            print(f"⚠️ OpenAI cost limit of ${cost_limit:.4f} reached. Stopping remaining AI calls.")
-            sys.stdout.flush()
-            cost_limit_reached = True
-            break
+    def check_abort_and_summarize(c1, c2):
+        check_abort()
+        return llm_client.summarize_code_change(c1, c2, custom_api_key=custom_api_key)
 
-        # If student already has a completed AI critique from previous run, skip them
-        if students_summary[email]["ai_critique_completed"]:
-            processed_count += 1
+    try:
+        for idx, (email, s_data) in enumerate(student_groups.items()):
+            # 1. Check user abort flag
+            check_abort()
+
+            # 2. Check cost limit
+            cost_info = llm_client.get_current_cost()
+            if cost_info["cost_usd"] >= cost_limit:
+                print(f"⚠️ OpenAI cost limit of ${cost_limit:.4f} reached. Stopping remaining AI calls.")
+                sys.stdout.flush()
+                cost_limit_reached = True
+                break
+
+            # If student already has a completed AI critique from previous run, skip them
+            if students_summary[email]["ai_critique_completed"]:
+                processed_count += 1
+                with ACTIVE_ANALYSES_LOCK:
+                    if contest_key in ACTIVE_ANALYSES:
+                        ACTIVE_ANALYSES[contest_key]["processed_students"] = processed_count
+                continue
+
+            # Run AI feedback for this student
+            uid = s_data["user_id"]
+            s_subs = s_data["submissions"]
+            questions_analyzed = students_summary[email]["attempts_details"]
+            
+            # Determine whether to call OpenAI API
+            use_mock = dry_run or not api_key_configured
+            if student_limit is not None and processed_count >= student_limit:
+                use_mock = True
+
+            if not use_mock:
+                print(f"[{idx+1}/{len(student_groups)}] Generating AI feedback for student: {email}")
+                sys.stdout.flush()
+                
+                # Lazily generate LLM diff summaries only for the student being analyzed
+                questions_analyzed_llm = []
+                student_q_timeline = student_timelines_by_email[email]
+                for qid, q_subs in student_q_timeline.items():
+                    check_abort()
+                    timeline_res_llm = analyzer.analyze_student_problem_timeline(
+                        q_subs,
+                        diff_summarizer=check_abort_and_summarize
+                    )
+                    meta = problems_metadata.get(qid, {})
+                    timeline_res_llm["title"] = meta.get("title", f"Problem {qid}")
+                    timeline_res_llm["description"] = meta.get("description", "No description provided.")
+                    questions_analyzed_llm.append(timeline_res_llm)
+                    
+                check_abort()
+                feedback = llm_client.analyze_student_feedback(email, questions_analyzed_llm, custom_api_key=custom_api_key)
+                students_summary[email]["attempts_details"] = questions_analyzed_llm
+                processed_count += 1
+            else:
+                feedback = students_summary[email]["feedback"]
+
+            # Update student record with completed AI critique
+            students_summary[email]["feedback"] = feedback
+            students_summary[email]["ai_critique_completed"] = not use_mock
+
+            # Update real-time background task stats
+            current_cost = llm_client.get_current_cost()
             with ACTIVE_ANALYSES_LOCK:
                 if contest_key in ACTIVE_ANALYSES:
                     ACTIVE_ANALYSES[contest_key]["processed_students"] = processed_count
-            continue
+                    ACTIVE_ANALYSES[contest_key]["cost_usd"] = current_cost["cost_usd"]
+                    ACTIVE_ANALYSES[contest_key]["prompt_tokens"] = current_cost["prompt_tokens"]
+                    ACTIVE_ANALYSES[contest_key]["completion_tokens"] = current_cost["completion_tokens"]
 
-        # Run AI feedback for this student
-        uid = s_data["user_id"]
-        s_subs = s_data["submissions"]
-        questions_analyzed = students_summary[email]["attempts_details"]
-        
-        # Determine whether to call OpenAI API
-        use_mock = dry_run or not api_key_configured
-        if student_limit is not None and processed_count >= student_limit:
-            use_mock = True
+            # Incremental Save: Write current state to summary.json every 5 students to avoid high disk/CPU overhead
+            if (idx + 1) % 5 == 0:
+                os.makedirs(output_dir, exist_ok=True)
+                report_data = {
+                    "metadata": {
+                        "contest_key": contest_key,
+                        "contest_name": contest_name,
+                        "program_name": program_name,
+                        "source_file": os.path.basename(file_path),
+                        "analyzed_at": datetime.now().isoformat(),
+                        "total_students": len(student_groups),
+                        "total_questions": len(problem_groups),
+                        "total_submissions": len(submissions),
+                        "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
+                        "dry_run": dry_run,
+                        "openai_api_used": api_key_configured and not dry_run,
+                        "accumulated_openai_cost_usd": current_cost["cost_usd"],
+                        "prompt_tokens": current_cost["prompt_tokens"],
+                        "completion_tokens": current_cost["completion_tokens"],
+                        "aborted_by_user": False,
+                        "cost_limit_reached": cost_limit_reached
+                    },
+                    "problems": problems_summary,
+                    "students": students_summary
+                }
+                with open(summary_path, "w") as f:
+                    json.dump(report_data, f, indent=2)
 
-        if not use_mock:
-            print(f"[{idx+1}/{len(student_groups)}] Generating AI feedback for student: {email}")
-            sys.stdout.flush()
-            
-            # Lazily generate LLM diff summaries only for the student being analyzed
-            questions_analyzed_llm = []
-            student_q_timeline = student_timelines_by_email[email]
-            for qid, q_subs in student_q_timeline.items():
-                timeline_res_llm = analyzer.analyze_student_problem_timeline(
-                    q_subs,
-                    diff_summarizer=lambda c1, c2: llm_client.summarize_code_change(c1, c2, custom_api_key=custom_api_key)
-                )
-                meta = problems_metadata.get(qid, {})
-                timeline_res_llm["title"] = meta.get("title", f"Problem {qid}")
-                timeline_res_llm["description"] = meta.get("description", "No description provided.")
-                questions_analyzed_llm.append(timeline_res_llm)
-                
-            feedback = llm_client.analyze_student_feedback(email, questions_analyzed_llm, custom_api_key=custom_api_key)
-            students_summary[email]["attempts_details"] = questions_analyzed_llm
-            processed_count += 1
-        else:
-            feedback = students_summary[email]["feedback"]
-
-        # Update student record with completed AI critique
-        students_summary[email]["feedback"] = feedback
-        students_summary[email]["ai_critique_completed"] = not use_mock
-
-        # Update real-time background task stats
-        current_cost = llm_client.get_current_cost()
-        with ACTIVE_ANALYSES_LOCK:
-            if contest_key in ACTIVE_ANALYSES:
-                ACTIVE_ANALYSES[contest_key]["processed_students"] = processed_count
-                ACTIVE_ANALYSES[contest_key]["cost_usd"] = current_cost["cost_usd"]
-                ACTIVE_ANALYSES[contest_key]["prompt_tokens"] = current_cost["prompt_tokens"]
-                ACTIVE_ANALYSES[contest_key]["completion_tokens"] = current_cost["completion_tokens"]
-
-        # Incremental Save: Write current state to summary.json instantly
-        os.makedirs(output_dir, exist_ok=True)
-        report_data = {
-            "metadata": {
-                "contest_key": contest_key,
-                "contest_name": contest_name,
-                "program_name": program_name,
-                "source_file": os.path.basename(file_path),
-                "analyzed_at": datetime.now().isoformat(),
-                "total_students": len(student_groups),
-                "total_questions": len(problem_groups),
-                "total_submissions": len(submissions),
-                "dry_run": dry_run,
-                "openai_api_used": api_key_configured and not dry_run,
-                "accumulated_openai_cost_usd": current_cost["cost_usd"],
-                "prompt_tokens": current_cost["prompt_tokens"],
-                "completion_tokens": current_cost["completion_tokens"],
-                "aborted_by_user": aborted_by_user,
-                "cost_limit_reached": cost_limit_reached
-            },
-            "problems": problems_summary,
-            "students": students_summary
-        }
-        with open(summary_path, "w") as f:
-            json.dump(report_data, f, indent=2)
+    except AnalysisAbortedException:
+        print(f"🛑 Analysis aborted by user. Exiting loop.")
+        sys.stdout.flush()
+        aborted_by_user = True
 
     # 7. Final compilation and status save (handles case when dry_run is true or no students were analyzed)
     os.makedirs(output_dir, exist_ok=True)
@@ -365,6 +448,7 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "total_students": len(student_groups),
             "total_questions": len(problem_groups),
             "total_submissions": len(submissions),
+            "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
             "dry_run": dry_run,
             "openai_api_used": api_key_configured and not dry_run,
             "accumulated_openai_cost_usd": cost_info["cost_usd"],
@@ -391,26 +475,83 @@ def start_analysis_in_background(file_path, dry_run, contest_name, program_name,
     contest_key = "".join(c for c in filename_base if c.isalnum() or c in ('-', '_')).strip()
     
     with ACTIVE_ANALYSES_LOCK:
+        if contest_key in ACTIVE_ANALYSES:
+            status = ACTIVE_ANALYSES[contest_key].get("status")
+            if status in ("pending", "queued", "running", "aborting"):
+                return contest_key, True
+        
         ACTIVE_ANALYSES[contest_key] = {
-            "status": "pending",
+            "status": "queued",
             "processed_students": 0,
             "total_students": 0,
             "cost_usd": 0.0,
             "prompt_tokens": 0,
             "completion_tokens": 0,
-            "aborted": False
+            "aborted": False,
+            "dry_run": dry_run
         }
         
-    thread = threading.Thread(
-        target=run_analysis_worker,
-        args=(file_path, dry_run, contest_name, program_name, contest_key, cost_limit, custom_api_key)
-    )
-    thread.daemon = True
-    thread.start()
-    return contest_key
+    ANALYSIS_QUEUE.put({
+        "file_path": file_path,
+        "dry_run": dry_run,
+        "contest_name": contest_name,
+        "program_name": program_name,
+        "contest_key": contest_key,
+        "cost_limit": cost_limit,
+        "custom_api_key": custom_api_key
+    })
+    return contest_key, False
+
+def global_analysis_worker():
+    while True:
+        try:
+            task = ANALYSIS_QUEUE.get()
+            if task is None:
+                break
+            
+            contest_key = task["contest_key"]
+            file_path = task["file_path"]
+            dry_run = task["dry_run"]
+            contest_name = task["contest_name"]
+            program_name = task["program_name"]
+            cost_limit = task["cost_limit"]
+            custom_api_key = task["custom_api_key"]
+            
+            # Update status to running, unless it was already aborted while in queue
+            with ACTIVE_ANALYSES_LOCK:
+                if contest_key in ACTIVE_ANALYSES:
+                    if ACTIVE_ANALYSES[contest_key].get("aborted"):
+                        ACTIVE_ANALYSES[contest_key]["status"] = "aborted"
+                        ANALYSIS_QUEUE.task_done()
+                        continue
+                    ACTIVE_ANALYSES[contest_key]["status"] = "running"
+            
+            run_analysis_worker(
+                file_path=file_path,
+                dry_run=dry_run,
+                contest_name=contest_name,
+                program_name=program_name,
+                contest_key=contest_key,
+                cost_limit=cost_limit,
+                custom_api_key=custom_api_key
+            )
+        except Exception as e:
+            print(f"Error in global analysis worker thread: {e}")
+        finally:
+            ANALYSIS_QUEUE.task_done()
+
+# Start the global analysis worker thread
+worker_thread = threading.Thread(target=global_analysis_worker, daemon=True)
+worker_thread.start()
 
 def run_analysis_worker(file_path, dry_run, contest_name, program_name, contest_key, cost_limit, custom_api_key):
     try:
+        from src.s3_client import S3SyncClient
+        s3 = S3SyncClient()
+        if s3.is_configured():
+            raw_filename = os.path.basename(file_path)
+            s3.upload_file(file_path, f"data/contests/{raw_filename}")
+
         run_analysis(
             file_path,
             dry_run=dry_run,
@@ -425,6 +566,10 @@ def run_analysis_worker(file_path, dry_run, contest_name, program_name, contest_
                     ACTIVE_ANALYSES[contest_key]["status"] = "aborted"
                 else:
                     ACTIVE_ANALYSES[contest_key]["status"] = "completed"
+                    
+        if s3.is_configured():
+            output_dir = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key)
+            s3.sync_directory(output_dir, f"reports/contests/{contest_key}", direction="push")
     except Exception as e:
         print(f"Error in analysis worker thread: {e}")
         with ACTIVE_ANALYSES_LOCK:
@@ -469,7 +614,7 @@ async def get_analysis_status(contest_key: str = Query(...), current_user: dict 
     return status_info
 
 @app.get("/api/contests")
-async def get_contests(current_user: dict = Depends(get_current_user)):
+def get_contests(current_user: dict = Depends(get_current_user)):
     contests = []
     contests_dir = os.path.join(DEFAULT_REPORT_DIR, "contests")
     if os.path.exists(contests_dir):
@@ -500,7 +645,7 @@ async def get_contests(current_user: dict = Depends(get_current_user)):
     return contests
 
 @app.get("/api/progress")
-async def get_progress(program: str = Query("All"), current_user: dict = Depends(get_current_user)):
+def get_progress(program: str = Query("All"), current_user: dict = Depends(get_current_user)):
     progress_data = {
         "program_name": program,
         "contests": [],
@@ -551,10 +696,147 @@ async def get_progress(program: str = Query("All"), current_user: dict = Depends
                 }
             progress_data["students"][email]["history"][c_key] = {
                 "solved_count": s_info.get("solved_count", 0),
-                "attempted_count": s_info.get("attempted_count", 0)
+                "attempted_count": s_info.get("attempted_count", 0),
+                "assignment_id": s_info.get("assignment_id", None)
             }
             
     return progress_data
+
+@app.get("/api/sections/metadata")
+def get_sections_metadata(current_user: dict = Depends(get_current_user)):
+    file_path = "data/sections_metadata.json"
+    if not os.path.exists(file_path):
+        from src.s3_client import S3SyncClient
+        s3 = S3SyncClient()
+        if s3.is_configured():
+            s3.download_file("data/sections_metadata.json", file_path)
+            
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error reading sections metadata: {e}")
+            
+    return {}
+
+@app.post("/api/sections/metadata")
+def save_sections_metadata(req: dict, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only Admins can configure sections.")
+    
+    file_path = "data/sections_metadata.json"
+    os.makedirs("data", exist_ok=True)
+    try:
+        with open(file_path, "w") as f:
+            json.dump(req, f, indent=2)
+            
+        from src.s3_client import S3SyncClient
+        s3 = S3SyncClient()
+        if s3.is_configured():
+            s3.upload_file(file_path, "data/sections_metadata.json")
+            
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save sections metadata: {str(e)}")
+
+
+@app.get("/api/backup/export")
+def export_backup(current_user: dict = Depends(get_current_user)):
+    import zipfile
+    import io
+    from fastapi.responses import StreamingResponse
+    
+    if current_user["role"] not in ("admin", "faculty"):
+        raise HTTPException(status_code=403, detail="Permission denied.")
+        
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # 1. Add data/contests
+        data_dir = "data/contests"
+        if os.path.exists(data_dir):
+            for root, dirs, files in os.walk(data_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, os.getcwd())
+                    zip_file.write(file_path, arcname)
+                    
+        # 2. Add data/sections_metadata.json
+        sections_path = "data/sections_metadata.json"
+        if os.path.exists(sections_path):
+            zip_file.write(sections_path, os.path.relpath(sections_path, os.getcwd()))
+            
+        # 3. Add reports/contests
+        reports_dir = os.path.join(DEFAULT_REPORT_DIR, "contests")
+        if os.path.exists(reports_dir):
+            for root, dirs, files in os.walk(reports_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, os.getcwd())
+                    zip_file.write(file_path, arcname)
+                    
+    memory_file.seek(0)
+    filename = f"scfa_backup_{datetime.now().strftime('%Y-%m-%d')}.zip"
+    return StreamingResponse(
+        memory_file, 
+        media_type="application/zip", 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@app.post("/api/backup/import")
+async def import_backup(
+    file: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    import zipfile
+    import io
+    from fastapi import UploadFile, File
+    
+    if current_user["role"] not in ("admin", "faculty"):
+        raise HTTPException(status_code=403, detail="Permission denied.")
+        
+    # We use a multipart parser to extract the uploaded file
+    # FastAPI's standard UploadFile requires python-multipart package which might not be installed,
+    # so we can parse it from request form/multipart data directly or safely import it.
+    try:
+        form = await file.form()
+        uploaded_file = form.get("file")
+        if not uploaded_file:
+            raise HTTPException(status_code=400, detail="No file uploaded.")
+        contents = await uploaded_file.read()
+    except Exception as e:
+        print(f"Error reading multipart: {e}")
+        # fallback to reading body directly if not multipart
+        contents = await file.body()
+        
+    memory_file = io.BytesIO(contents)
+    
+    try:
+        with zipfile.ZipFile(memory_file, 'r') as zip_ref:
+            # Validate zip contents
+            for name in zip_ref.namelist():
+                if "../" in name or name.startswith("/") or name.startswith(".."):
+                    raise HTTPException(status_code=400, detail="Invalid zip archive path traversal detected.")
+            
+            # Extract files
+            zip_ref.extractall()
+            
+        # Push to S3 if configured
+        from src.s3_client import S3SyncClient
+        s3 = S3SyncClient()
+        if s3.is_configured():
+            s3.sync_directory("data/contests", "data/contests", direction="push")
+            s3.sync_directory("reports/contests", "reports/contests", direction="push")
+            if os.path.exists("data/sections_metadata.json"):
+                s3.upload_file("data/sections_metadata.json", "data/sections_metadata.json")
+                
+        return {"success": True, "message": "Backup restored successfully."}
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="Invalid ZIP archive.")
+    except Exception as e:
+        print(f"Error during backup import: {e}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
 
 @app.post("/api/upload")
 async def upload_contest(
@@ -600,7 +882,7 @@ async def upload_contest(
             dry_run = not (run_ai and has_key)
             custom_api_key = x_openai_api_key if has_key else None
         
-        contest_key = start_analysis_in_background(
+        contest_key, already_active = start_analysis_in_background(
             file_path, 
             dry_run=dry_run, 
             contest_name=contest_name, 
@@ -609,22 +891,24 @@ async def upload_contest(
             custom_api_key=custom_api_key
         )
         
+        msg = "Analysis is already active/queued for this contest." if already_active else "Contest uploaded. AI analysis has started in the background."
         return {
             "success": True,
             "contest_key": contest_key,
-            "message": "Contest uploaded. AI analysis has started in the background."
+            "message": msg
         }
     except Exception as e:
         print(f"Error handling file upload: {e}")
         raise HTTPException(status_code=500, detail=f"Server error during upload: {str(e)}")
 
 @app.post("/api/reanalyze")
-async def reanalyze_contest(
+def reanalyze_contest(
     contest_key: str = Query(...),
     cost_limit: float = Query(0.50),
     x_openai_api_key: str = Header(None),
     current_user: dict = Depends(get_current_user)
 ):
+    validate_contest_key(contest_key)
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only Admins can trigger OpenAI critiques.")
     try:
@@ -660,7 +944,7 @@ async def reanalyze_contest(
                 contest_name = meta.get("contest_name")
                 program_name = meta.get("program_name")
         
-        start_analysis_in_background(
+        contest_key, already_active = start_analysis_in_background(
             raw_file_path, 
             dry_run=False, 
             contest_name=contest_name, 
@@ -669,25 +953,32 @@ async def reanalyze_contest(
             custom_api_key=None # Admin only uses server key
         )
         
+        msg = "Analysis is already active/queued for this contest." if already_active else "AI analysis started in the background."
         return {
             "success": True,
             "contest_key": contest_key,
-            "message": "AI analysis started in the background."
+            "message": msg
         }
     except Exception as e:
         print(f"Error during re-analysis: {e}")
         raise HTTPException(status_code=500, detail=f"AI Analysis failed: {str(e)}")
 
 @app.post("/api/abort-analysis")
-async def abort_analysis(contest_key: str = Query(...), current_user: dict = Depends(get_current_user)):
+def abort_analysis(contest_key: str = Query(...), current_user: dict = Depends(get_current_user)):
+    validate_contest_key(contest_key)
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only Admins can abort analyses.")
     try:
         with ACTIVE_ANALYSES_LOCK:
             if contest_key in ACTIVE_ANALYSES:
                 ACTIVE_ANALYSES[contest_key]["aborted"] = True
-                ACTIVE_ANALYSES[contest_key]["status"] = "aborting"
-                msg = "Analysis abort requested. Progress will be saved."
+                current_status = ACTIVE_ANALYSES[contest_key].get("status")
+                if current_status == "queued":
+                    ACTIVE_ANALYSES[contest_key]["status"] = "aborted"
+                    msg = "Analysis aborted from queue."
+                else:
+                    ACTIVE_ANALYSES[contest_key]["status"] = "aborting"
+                    msg = "Analysis abort requested. Progress will be saved."
             else:
                 msg = "No running analysis found for this contest."
         
@@ -699,12 +990,13 @@ async def abort_analysis(contest_key: str = Query(...), current_user: dict = Dep
         raise HTTPException(status_code=500, detail=f"Failed to abort analysis: {str(e)}")
 
 @app.post("/api/analyze-student")
-async def analyze_student(
+def analyze_student(
     contest_key: str = Query(...),
     email: str = Query(...),
     x_openai_api_key: str = Header(None),
     current_user: dict = Depends(get_current_user)
 ):
+    validate_contest_key(contest_key)
     if current_user["role"] not in ("admin", "faculty"):
         raise HTTPException(status_code=403, detail="Permission denied.")
     try:
@@ -791,6 +1083,7 @@ async def analyze_student(
         student_record = {
             "user_id": uid,
             "email": email,
+            "assignment_id": s_subs[0]["assignment_id"] if s_subs else None,
             "total_submissions": len(s_subs),
             "solved_count": len(solved_qids),
             "attempted_count": len(attempted_qids),
@@ -827,23 +1120,97 @@ async def analyze_student(
         raise HTTPException(status_code=500, detail=f"Single student analysis failed: {str(e)}")
 
 @app.get("/api/contests/{contest_key}/summary")
-async def get_contest_summary(contest_key: str, current_user: dict = Depends(get_current_user)):
+def get_contest_summary(contest_key: str, current_user: dict = Depends(get_current_user)):
+    """
+    Returns a lightweight summary for the dashboard — strips heavy per-attempt diff logs
+    and full AI feedback bodies to keep the payload small. Full student detail is available
+    via GET /api/contests/{contest_key}/students/{email}.
+    """
+    validate_contest_key(contest_key)
     summary_path = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key, "summary.json")
     if not os.path.exists(summary_path):
         raise HTTPException(status_code=404, detail="Contest summary not found.")
     try:
         with open(summary_path, "r") as f:
-            return json.load(f)
+            data = json.load(f)
+
+        # Strip heavy fields from each student's record to reduce payload size
+        students_lite = {}
+        for email, s in data.get("students", {}).items():
+            # Build a lightweight attempts_details list (no diff logs, no code bodies)
+            lite_attempts = []
+            for detail in s.get("attempts_details", []):
+                lite_attempts.append({
+                    "question_id": detail.get("question_id"),
+                    "title": detail.get("title"),
+                    "solved": detail.get("solved"),
+                    "total_attempts": detail.get("total_attempts"),
+                    "best_attempt_index": detail.get("best_attempt_index"),
+                    # Keep a minimal history with just status — no source code or diffs
+                    "attempts_history": [
+                        {
+                            "attempt_number": h.get("attempt_number"),
+                            "status_name": h.get("status_name"),
+                            "submitted_at": h.get("submitted_at"),
+                        }
+                        for h in detail.get("attempts_history", [])
+                    ],
+                })
+
+            students_lite[email] = {
+                "user_id": s.get("user_id"),
+                "email": s.get("email"),
+                "assignment_id": s.get("assignment_id"),
+                "total_submissions": s.get("total_submissions"),
+                "solved_count": s.get("solved_count"),
+                "attempted_count": s.get("attempted_count"),
+                "solved_questions": s.get("solved_questions"),
+                "attempted_questions": s.get("attempted_questions"),
+                "attempts_details": lite_attempts,
+                # Include a summary of feedback but not the full text
+                "has_feedback": bool(s.get("feedback") or s.get("custom_feedback")),
+                "custom_feedback": s.get("custom_feedback"),
+            }
+
+        return {
+            "metadata": data.get("metadata", {}),
+            "problems": data.get("problems", {}),
+            "students": students_lite,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read summary data: {str(e)}")
 
+
+@app.get("/api/contests/{contest_key}/students/{email:path}")
+def get_student_detail(contest_key: str, email: str, current_user: dict = Depends(get_current_user)):
+    """
+    Returns the full detail record for a single student including diff logs and AI feedback.
+    Called on-demand when a student is selected in the Student Portal.
+    """
+    validate_contest_key(contest_key)
+    summary_path = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key, "summary.json")
+    if not os.path.exists(summary_path):
+        raise HTTPException(status_code=404, detail="Contest summary not found.")
+    try:
+        with open(summary_path, "r") as f:
+            data = json.load(f)
+        student = data.get("students", {}).get(email)
+        if not student:
+            raise HTTPException(status_code=404, detail=f"Student '{email}' not found in this contest.")
+        return student
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read student data: {str(e)}")
+
 @app.post("/api/contests/{contest_key}/students/{email}/feedback")
-async def save_student_feedback(
+def save_student_feedback(
     contest_key: str, 
     email: str, 
     req: FeedbackRequest, 
     current_user: dict = Depends(get_current_user)
 ):
+    validate_contest_key(contest_key)
     if current_user["role"] not in ("admin", "faculty"):
         raise HTTPException(status_code=403, detail="Permission denied.")
     
@@ -863,14 +1230,24 @@ async def save_student_feedback(
         with open(summary_path, "w") as f:
             json.dump(data, f, indent=2)
             
+        from src.s3_client import S3SyncClient
+        s3 = S3SyncClient()
+        if s3.is_configured():
+            s3.upload_file(summary_path, f"reports/contests/{contest_key}/summary.json")
+            
         return {"success": True, "message": "Custom feedback saved successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save custom feedback: {str(e)}")
 
+
 @app.delete("/api/contests/{contest_key}")
-async def delete_contest(contest_key: str, current_user: dict = Depends(get_current_user)):
+def delete_contest(contest_key: str, current_user: dict = Depends(get_current_user)):
+    validate_contest_key(contest_key)
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only Admins can delete contests.")
+    
+    from src.s3_client import S3SyncClient
+    s3 = S3SyncClient()
     
     raw_filename = f"{contest_key}.json"
     raw_file_path = os.path.join("data", "contests", raw_filename)
@@ -881,6 +1258,9 @@ async def delete_contest(contest_key: str, current_user: dict = Depends(get_curr
             deleted_raw = True
         except Exception as e:
             print(f"Error removing raw file {raw_file_path}: {e}")
+            
+    if s3.is_configured():
+        s3.delete_file(f"data/contests/{raw_filename}")
             
     summary_path = os.path.join(DEFAULT_REPORT_DIR, "contests", contest_key, "summary.json")
     if os.path.exists(summary_path):
@@ -893,6 +1273,8 @@ async def delete_contest(contest_key: str, current_user: dict = Depends(get_curr
                     if os.path.exists(mapped_file_path):
                         os.remove(mapped_file_path)
                         deleted_raw = True
+                    if s3.is_configured():
+                        s3.delete_file(f"data/contests/{source_file}")
         except Exception:
             pass
 
@@ -905,6 +1287,9 @@ async def delete_contest(contest_key: str, current_user: dict = Depends(get_curr
             deleted_report = True
         except Exception as e:
             print(f"Error removing report folder {report_folder}: {e}")
+            
+    if s3.is_configured():
+        s3.delete_prefix(f"reports/contests/{contest_key}")
             
     if not deleted_raw and not deleted_report:
         raise HTTPException(status_code=404, detail="Contest records not found.")
@@ -939,12 +1324,50 @@ def main():
     serve_parser = subparsers.add_parser("serve", help="Launch the local web dashboard server")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port to run dashboard server on")
 
+    # Sync subparser
+    sync_parser = subparsers.add_parser("sync", help="Sync local data with AWS S3")
+    sync_parser.add_argument(
+        "--direction", 
+        required=True, 
+        choices=["push", "pull"], 
+        help="Direction of synchronization: 'push' to S3, or 'pull' from S3"
+    )
+
     args = parser_arg.parse_args()
 
     if args.command == "analyze":
         run_analysis(args.file, args.dry_run, args.limit, contest_name=args.name, program_name=args.program)
     elif args.command == "serve":
         start_server(args.port)
+    elif args.command == "sync":
+        from src.s3_client import S3SyncClient
+        s3 = S3SyncClient()
+        if not s3.is_configured():
+            print("❌ Error: S3 environment variables are not configured in your environment or .env file.")
+            sys.exit(1)
+            
+        print(f"🔄 Starting S3 sync: direction={args.direction}...")
+        
+        connected, msg = s3.test_connection()
+        if not connected:
+            print(f"❌ Connection test failed: {msg}")
+            sys.exit(1)
+            
+        print("✅ Connected to S3 bucket successfully.")
+        
+        # 1. Sync data/contests
+        print(f"\n📁 Syncing data/contests/ ...")
+        success1, msg1 = s3.sync_directory("data/contests", "data/contests", direction=args.direction)
+        
+        # 2. Sync reports/contests
+        print(f"\n📁 Syncing reports/contests/ ...")
+        success2, msg2 = s3.sync_directory("reports/contests", "reports/contests", direction=args.direction)
+        
+        if success1 and success2:
+            print(f"\n🎉 S3 Synchronization completed successfully!")
+        else:
+            print(f"\n⚠️ Sync completed with some errors: data={msg1}, reports={msg2}")
+            sys.exit(1)
     else:
         parser_arg.print_help()
 
