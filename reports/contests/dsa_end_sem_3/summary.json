@@ -9,10 +9,13 @@
     "total_questions": 14,
     "total_submissions": 3115,
     "dry_run": true,
-    "openai_api_used": false,
+    "openai_api_used": true,
     "assignment_ids": [
       85496
-    ]
+    ],
+    "accumulated_openai_cost_usd": 0.00113655,
+    "prompt_tokens": 3709,
+    "completion_tokens": 967
   },
   "problems": {
     "25133": {
@@ -38099,6 +38102,7 @@
     "aadarsh.25001@nst.rishihood.edu.in": {
       "user_id": 1793204,
       "email": "aadarsh.25001@nst.rishihood.edu.in",
+      "assignment_id": 85496,
       "total_submissions": 12,
       "solved_count": 6,
       "attempted_count": 7,
@@ -38121,49 +38125,55 @@
       ],
       "feedback": {
         "strengths": [
-          "Local pre-processing completed. Ready for AI feedback."
+          "Demonstrated strong logical thinking by successfully implementing various algorithms such as binary search and recursion.",
+          "Maintained a clean and consistent coding style across all submissions, which enhances readability.",
+          "Effectively debugged their recursive function by adding a crucial base case to handle edge conditions."
         ],
         "weaknesses": [
-          "OpenAI API key missing. Code progression metrics are available locally."
+          "Struggles with edge cases, particularly in the binary search implementation where the return value may not cover all scenarios, leading to wrong answers.",
+          "Lacks familiarity with optimal algorithmic approaches, as seen in the brute-force solution for finding three numbers that sum to a target, which could be improved with a more efficient method.",
+          "Inconsistent handling of output formatting, as evidenced by the change from 'Yes' to 'YES', indicating a need for attention to detail in problem requirements."
         ],
         "recommendations": [
-          "Set the OPENAI_API_KEY in your .env file to generate personalized feedback, logical critiques, and recommendations."
+          "Study edge cases in binary search algorithms by reviewing resources like 'Binary Search - GeeksforGeeks' to understand how to handle scenarios where the target is not found.",
+          "Practice optimizing brute-force solutions by exploring the 'Two Pointers Technique' and 'Hashing' for problems involving sums, which can significantly reduce time complexity.",
+          "Engage in exercises focused on output formatting and problem constraints to ensure adherence to requirements, such as those found on competitive programming platforms like Codeforces or LeetCode."
         ],
         "question_feedback": {
           "21107": {
-            "summary": "Analyzed 1 attempts locally. Student solved the problem.",
-            "critique": "Local metrics show 1 attempts. Best test cases passed: 11. Configure OPENAI_API_KEY to get detailed code critique.",
-            "score_rating": "Completed"
+            "summary": "Successfully solved the problem on the first attempt with all tests passing.",
+            "critique": "The code is straightforward and effectively solves the problem. However, consider removing the unnecessary 'else: continue' statement for cleaner code.",
+            "score_rating": "Excellent"
           },
           "25133": {
-            "summary": "Analyzed 1 attempts locally. Student solved the problem.",
-            "critique": "Local metrics show 1 attempts. Best test cases passed: 27. Configure OPENAI_API_KEY to get detailed code critique.",
-            "score_rating": "Completed"
+            "summary": "Solved the problem on the first attempt with all tests passing.",
+            "critique": "The logic is sound, but the code could be simplified by directly incrementing the count without the 'else: continue' clause, enhancing readability.",
+            "score_rating": "Excellent"
           },
           "24604": {
-            "summary": "Analyzed 1 attempts locally. Student solved the problem.",
-            "critique": "Local metrics show 1 attempts. Best test cases passed: 20. Configure OPENAI_API_KEY to get detailed code critique.",
-            "score_rating": "Completed"
+            "summary": "Successfully solved the problem on the first attempt with all tests passing.",
+            "critique": "The implementation is efficient and clear. Consider adding type hints for better code documentation and clarity.",
+            "score_rating": "Excellent"
           },
           "25135": {
-            "summary": "Analyzed 3 attempts locally. Student solved the problem.",
-            "critique": "Local metrics show 3 attempts. Best test cases passed: 22. Configure OPENAI_API_KEY to get detailed code critique.",
-            "score_rating": "Completed"
+            "summary": "Initially faced a wrong answer but successfully debugged the recursive function to handle edge cases.",
+            "critique": "Great job on identifying the missing base case for zero. Ensure to test thoroughly for all edge cases in recursive functions to avoid similar issues in the future.",
+            "score_rating": "Good Effort"
           },
           "22270": {
-            "summary": "Analyzed 1 attempts locally. Student solved the problem.",
-            "critique": "Local metrics show 1 attempts. Best test cases passed: 6. Configure OPENAI_API_KEY to get detailed code critique.",
-            "score_rating": "Completed"
+            "summary": "Solved the problem on the first attempt with all tests passing.",
+            "critique": "The binary search implementation is correct. However, consider adding comments to explain the logic for future reference.",
+            "score_rating": "Excellent"
           },
           "22245": {
-            "summary": "Analyzed 2 attempts locally. Student solved the problem.",
-            "critique": "Local metrics show 2 attempts. Best test cases passed: 12. Configure OPENAI_API_KEY to get detailed code critique.",
-            "score_rating": "Completed"
+            "summary": "Initially received a wrong answer but corrected the output format in the final attempt.",
+            "critique": "While the logic is correct, the brute-force approach can be optimized. Explore more efficient algorithms for similar problems to improve performance.",
+            "score_rating": "Good Effort"
           },
           "5792": {
-            "summary": "Analyzed 3 attempts locally. Student attempted but did not solve the problem.",
-            "critique": "Local metrics show 3 attempts. Best test cases passed: 4. Configure OPENAI_API_KEY to get detailed code critique.",
-            "score_rating": "Needs Review"
+            "summary": "Failed to solve the problem after three attempts, with the final attempt resulting in a wrong answer.",
+            "critique": "The binary search logic is mostly correct, but ensure to handle cases where the target is greater than the largest letter in the list. Review the return statement to ensure it covers all scenarios.",
+            "score_rating": "Needs Help"
           }
         }
       },
@@ -38178,7 +38188,7 @@
           "first_attempt_code": "l,r = map(int,input().split())\nfor i in range(l,r+1):\n    if i%2!=0:\n        print(i,end=\" \")\n    else:\n        continue",
           "final_attempt_code": "l,r = map(int,input().split())\nfor i in range(l,r+1):\n    if i%2!=0:\n        print(i,end=\" \")\n    else:\n        continue",
           "best_attempt_code": "l,r = map(int,input().split())\nfor i in range(l,r+1):\n    if i%2!=0:\n        print(i,end=\" \")\n    else:\n        continue",
-          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 11\nInitial code written.",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 11\nInitial code written: iterates through a range to print all odd numbers between two given integers.",
           "transitions_count": 1,
           "attempts": [
             {
@@ -38201,7 +38211,7 @@
           "first_attempt_code": "s = input()\nvov = \"aeiou\"\ncount = 0\nfor ch in s:\n    if ch not in vov:\n        count += 1\n    else:\n        continue\nprint(count)",
           "final_attempt_code": "s = input()\nvov = \"aeiou\"\ncount = 0\nfor ch in s:\n    if ch not in vov:\n        count += 1\n    else:\n        continue\nprint(count)",
           "best_attempt_code": "s = input()\nvov = \"aeiou\"\ncount = 0\nfor ch in s:\n    if ch not in vov:\n        count += 1\n    else:\n        continue\nprint(count)",
-          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 27\nInitial code written.",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 27\nInitial code written: counts the number of consonants in the input string by iterating through each character.",
           "transitions_count": 1,
           "attempts": [
             {
@@ -38224,7 +38234,7 @@
           "first_attempt_code": "def findDifference(N, nums):\n    even = 0\n    odd = 0\n    for i in range(N):\n        if nums[i]%2==0:\n            even += nums[i]\n        else:\n            odd += nums[i]\n    return even - odd",
           "final_attempt_code": "def findDifference(N, nums):\n    even = 0\n    odd = 0\n    for i in range(N):\n        if nums[i]%2==0:\n            even += nums[i]\n        else:\n            odd += nums[i]\n    return even - odd",
           "best_attempt_code": "def findDifference(N, nums):\n    even = 0\n    odd = 0\n    for i in range(N):\n        if nums[i]%2==0:\n            even += nums[i]\n        else:\n            odd += nums[i]\n    return even - odd",
-          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 20\nInitial code written.",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 20\nInitial code written: calculates the difference between the sum of even and odd numbers in a list using a single loop.",
           "transitions_count": 1,
           "attempts": [
             {
@@ -38247,7 +38257,7 @@
           "first_attempt_code": "def isPowerOfTwo(n):\n    if n==1:\n        return True\n    if n%2!=0:\n        return False\n    return isPowerOfTwo(n//2)",
           "final_attempt_code": "def isPowerOfTwo(n):\n    if n==0:\n        return False\n    if n==1:\n        return True\n    if n%2!=0:\n        return False\n    return isPowerOfTwo(n//2)",
           "best_attempt_code": "def isPowerOfTwo(n):\n    if n==0:\n        return False\n    if n==1:\n        return True\n    if n%2!=0:\n        return False\n    return isPowerOfTwo(n//2)",
-          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 21\nInitial code written.\n\nAttempt 3 | Status: Accepted | Tests Passed: 22\nDiff metrics: +2 lines, -0 lines.\nChanges:\n  - Line 2: Added `if n==0:`\n  - Line 3: Added `return False`",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 21\nInitial code written: attempts a recursive solution to determine if a number is a power of two.\n\nAttempt 3 | Status: Accepted | Tests Passed: 22\nThe student added a condition to return `False` if `n` is `0` in the `isPowerOfTwo` function.",
           "transitions_count": 2,
           "attempts": [
             {
@@ -38276,7 +38286,7 @@
           "first_attempt_code": "def isPresent(n, nums, target):\n    start = 0\n    end = n-1\n    while start <= end:\n        mid = (start+end)//2\n        if nums[mid]==target:\n            return mid\n        elif nums[mid]>target:\n            start = mid+1\n        else:\n            end = mid-1\n    return -1",
           "final_attempt_code": "def isPresent(n, nums, target):\n    start = 0\n    end = n-1\n    while start <= end:\n        mid = (start+end)//2\n        if nums[mid]==target:\n            return mid\n        elif nums[mid]>target:\n            start = mid+1\n        else:\n            end = mid-1\n    return -1",
           "best_attempt_code": "def isPresent(n, nums, target):\n    start = 0\n    end = n-1\n    while start <= end:\n        mid = (start+end)//2\n        if nums[mid]==target:\n            return mid\n        elif nums[mid]>target:\n            start = mid+1\n        else:\n            end = mid-1\n    return -1",
-          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 6\nInitial code written.",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 6\nInitial code written: implements a binary search algorithm to find the target in a sorted list.",
           "transitions_count": 1,
           "attempts": [
             {
@@ -38299,7 +38309,7 @@
           "first_attempt_code": "t = int(input())\nfor _ in range(t):\n    n , tar = map(int,input().split())\n    nums = list(map(int,input().split()))\n    flag = False\n    for i in range(n):\n        for j in range(i+1,n):\n            for k in range(j+1,n):\n                if nums[i]+nums[j]+nums[k] == tar:\n                    flag = True\n                    break\n    if flag==True:\n        print(\"Yes\")\n    else:\n        print(\"NO\")",
           "final_attempt_code": "t = int(input())\nfor _ in range(t):\n    n , tar = map(int,input().split())\n    nums = list(map(int,input().split()))\n    flag = False\n    for i in range(n):\n        for j in range(i+1,n):\n            for k in range(j+1,n):\n                if nums[i]+nums[j]+nums[k] == tar:\n                    flag = True\n                    break\n    if flag==True:\n        print(\"YES\")\n    else:\n        print(\"NO\")",
           "best_attempt_code": "t = int(input())\nfor _ in range(t):\n    n , tar = map(int,input().split())\n    nums = list(map(int,input().split()))\n    flag = False\n    for i in range(n):\n        for j in range(i+1,n):\n            for k in range(j+1,n):\n                if nums[i]+nums[j]+nums[k] == tar:\n                    flag = True\n                    break\n    if flag==True:\n        print(\"YES\")\n    else:\n        print(\"NO\")",
-          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 0\nInitial code written.\n\nAttempt 2 | Status: Accepted | Tests Passed: 12\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 13: Deleted `print(\"Yes\")`\n  - Line 13: Added `print(\"YES\")`",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 0\nInitial code written: implements a nested loop brute-force search to find three numbers that sum to a target value.\n\nAttempt 2 | Status: Accepted | Tests Passed: 12\nThe student changed the output string from Yes to YES when the flag is true.",
           "transitions_count": 2,
           "attempts": [
             {
@@ -38328,7 +38338,7 @@
           "first_attempt_code": "def nextGreatestLetter(letters, target):\n    start = 0\n    end = len(letters)-1\n    while start <= end:\n        mid = (start + end)//2\n        if ord(letters[mid])==ord(target):\n            return letters[mid+1]\n        elif ord(letters[mid]) < ord(target):\n            start = mid+1\n        else:\n            end = mid-1\n    return letters[mid]",
           "final_attempt_code": "def nextGreatestLetter(letters, target):\n    start = 0\n    end = len(letters)-1\n    while start <= end:\n        mid = (start + end)//2\n        if ord(letters[mid])==ord(target):\n            return letters[mid+1]\n        if ord(letters[mid]) < ord(target):\n            start = mid+1\n        else:\n            end = mid-1\n    return letters[mid]",
           "best_attempt_code": "def nextGreatestLetter(letters, target):\n    start = 0\n    end = len(letters)-1\n    while start <= end:\n        mid = (start + end)//2\n        if ord(letters[mid])==ord(target):\n            return letters[mid+1]\n        elif ord(letters[mid]) < ord(target):\n            start = mid+1\n        else:\n            end = mid-1\n    return letters[mid]",
-          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 4\nInitial code written.",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 4\nInitial code written: implements a binary search to find the next greatest letter after a given target.",
           "transitions_count": 1,
           "attempts": [
             {
@@ -38342,7 +38352,7 @@
           "description": "No description provided."
         }
       ],
-      "assignment_id": 85496
+      "ai_critique_completed": true
     },
     "yuvraj.b25539@nst.rishihood.edu.in": {
       "user_id": 2432805,
@@ -42497,6 +42507,1178 @@
         }
       ],
       "assignment_id": 85496
+    },
+    "jkjitesh3538@gmail.com": {
+      "user_id": 2328804,
+      "email": "jkjitesh3538@gmail.com",
+      "total_submissions": 45,
+      "solved_count": 14,
+      "attempted_count": 14,
+      "solved_questions": [
+        "21107",
+        "25133",
+        "24604",
+        "22245",
+        "21187",
+        "22270",
+        "5792",
+        "141",
+        "25048",
+        "25044",
+        "25086",
+        "25135",
+        "24379",
+        "25040"
+      ],
+      "attempted_questions": [
+        "21107",
+        "25133",
+        "24604",
+        "22245",
+        "21187",
+        "22270",
+        "5792",
+        "141",
+        "25048",
+        "25044",
+        "25086",
+        "25135",
+        "24379",
+        "25040"
+      ],
+      "feedback": {
+        "strengths": [
+          "Demonstrated strong logical thinking by successfully solving multiple problems with minimal attempts.",
+          "Consistently utilized Python's built-in functions and constructs effectively, such as using list comprehensions and the 'map' function.",
+          "Showed resilience in debugging, particularly in the later attempts of more complex problems, leading to successful resolutions."
+        ],
+        "weaknesses": [
+          "Struggles with optimizing algorithms, as seen in the Time Limit Exceeded (TLE) issues, particularly in nested loops that could be improved with more efficient data structures.",
+          "Occasionally misses edge cases, such as handling zero or negative values in recursive functions, which can lead to incorrect results.",
+          "Lacks clarity in code structure for more complex problems, which can lead to confusion and inefficiencies, particularly in the handling of conditions and loops."
+        ],
+        "recommendations": [
+          "Study the 'Two Pointers Technique' to improve efficiency in problems involving arrays or lists, which can help avoid TLE issues.",
+          "Practice identifying and handling edge cases in recursive functions by reviewing resources on recursion and common pitfalls.",
+          "Engage with problems on LeetCode that focus on optimizing nested loops and using data structures like hash maps or sets for faster lookups."
+        ],
+        "question_feedback": {
+          "21107": {
+            "summary": "Successfully solved with a single attempt, demonstrating a clear understanding of the problem requirements.",
+            "critique": "The solution is efficient and straightforward, but consider exploring edge cases where 'a' and 'b' are equal or both even.",
+            "score_rating": "Excellent"
+          },
+          "25133": {
+            "summary": "Solved in one attempt, showcasing effective use of loops and conditionals.",
+            "critique": "The code is clean and functional; however, consider using a more Pythonic approach with list comprehensions for counting consonants.",
+            "score_rating": "Excellent"
+          },
+          "24604": {
+            "summary": "Initially faced a wrong answer but successfully corrected it in the second attempt.",
+            "critique": "The transition from print to return was crucial for correct function behavior. Ensure to validate outputs against expected results in the first attempt.",
+            "score_rating": "Good Effort"
+          },
+          "22245": {
+            "summary": "Solved in one attempt, effectively using nested loops to check combinations.",
+            "critique": "The nested loops could lead to inefficiencies for larger inputs. Consider using combinations from itertools for better performance.",
+            "score_rating": "Good Effort"
+          },
+          "21187": {
+            "summary": "Successfully solved on the first attempt, demonstrating a solid grasp of linked list manipulation.",
+            "critique": "The logic is sound; however, ensure to comment on the purpose of each section for better readability.",
+            "score_rating": "Excellent"
+          },
+          "22270": {
+            "summary": "Faced multiple attempts due to TLE and wrong answers but ultimately succeeded.",
+            "critique": "The initial approach was inefficient. Focus on binary search principles to enhance performance and avoid TLE.",
+            "score_rating": "Needs Help"
+          },
+          "5792": {
+            "summary": "Encountered multiple runtime errors and TLE but managed to resolve them after several attempts.",
+            "critique": "The initial logic was flawed; consider validating inputs and outputs more rigorously. Review binary search for efficiency.",
+            "score_rating": "Needs Help"
+          },
+          "141": {
+            "summary": "Solved in one attempt, showcasing good understanding of linked list reversal.",
+            "critique": "The implementation is clear and efficient. Continue to practice similar problems to reinforce this skill.",
+            "score_rating": "Excellent"
+          },
+          "25048": {
+            "summary": "Successfully solved in one attempt, demonstrating understanding of tree traversal.",
+            "critique": "The solution is effective; however, consider edge cases where the tree might be empty or have only one child.",
+            "score_rating": "Excellent"
+          },
+          "25044": {
+            "summary": "Solved in one attempt, effectively counting node frequencies.",
+            "critique": "The recursive approach is solid. Ensure to handle cases where the tree is unbalanced or skewed.",
+            "score_rating": "Excellent"
+          },
+          "25086": {
+            "summary": "Successfully solved in one attempt, demonstrating good understanding of linked list manipulation.",
+            "critique": "The code is clean and efficient. Continue to practice similar problems to reinforce this skill.",
+            "score_rating": "Excellent"
+          },
+          "25135": {
+            "summary": "Initially faced a wrong answer but successfully corrected it in the second attempt.",
+            "critique": "The addition of the base case for zero was crucial. Ensure to validate outputs against expected results in the first attempt.",
+            "score_rating": "Good Effort"
+          },
+          "24379": {
+            "summary": "Faced multiple wrong answers but ultimately succeeded after several attempts.",
+            "critique": "The logic was complex and led to confusion. Simplifying conditions and using clear variable names can help improve readability.",
+            "score_rating": "Needs Help"
+          },
+          "25040": {
+            "summary": "Initially faced a runtime error but successfully corrected it in the third attempt.",
+            "critique": "The addition of the length check was essential. Ensure to validate outputs against expected results in the first attempt.",
+            "score_rating": "Good Effort"
+          }
+        }
+      },
+      "attempts_details": [
+        {
+          "question_id": 21107,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 11,
+          "first_attempt_code": "a,b=map(int,input().split())\nif a%2==1:\n    print(*range(a,b+1,2))\nelse:\n    print(*range(a+1,b+1,2))",
+          "final_attempt_code": "a,b=map(int,input().split())\nif a%2==1:\n    print(*range(a,b+1,2))\nelse:\n    print(*range(a+1,b+1,2))",
+          "best_attempt_code": "a,b=map(int,input().split())\nif a%2==1:\n    print(*range(a,b+1,2))\nelse:\n    print(*range(a+1,b+1,2))",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 11\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 11,
+              "source_code": "a,b=map(int,input().split())\nif a%2==1:\n    print(*range(a,b+1,2))\nelse:\n    print(*range(a+1,b+1,2))"
+            }
+          ],
+          "title": "Problem 21107",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25133,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 27,
+          "first_attempt_code": "a=input()\nc=0\nfor i in a:\n    if i not in \"aeiou\":\n        c+=1\nprint(c)",
+          "final_attempt_code": "a=input()\nc=0\nfor i in a:\n    if i not in \"aeiou\":\n        c+=1\nprint(c)",
+          "best_attempt_code": "a=input()\nc=0\nfor i in a:\n    if i not in \"aeiou\":\n        c+=1\nprint(c)",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 27\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 27,
+              "source_code": "a=input()\nc=0\nfor i in a:\n    if i not in \"aeiou\":\n        c+=1\nprint(c)"
+            }
+          ],
+          "title": "Problem 25133",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 24604,
+          "total_attempts": 2,
+          "solved": true,
+          "best_attempt_index": 2,
+          "best_status": "Accepted",
+          "best_tests_passed": 20,
+          "first_attempt_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    print(e-o)",
+          "final_attempt_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    return e-o",
+          "best_attempt_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    return e-o",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 0\nInitial code written.\n\nAttempt 2 | Status: Accepted | Tests Passed: 20\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 9: Modified `print(e-o)` -> `return e-o`",
+          "transitions_count": 2,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Wrong Answer",
+              "tests_passing": 0,
+              "source_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    print(e-o)"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Accepted",
+              "tests_passing": 20,
+              "source_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    return e-o"
+            }
+          ],
+          "title": "Problem 24604",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 22245,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 12,
+          "first_attempt_code": "t = int(input())\nfor _ in range(t):\n    a,b=map(int,input().split())\n    l=list(map(int,input().split()))\n    flag1=False\n    for i in range(a):\n        for j in range(i+1,a):\n            for k in range(j+1,a):\n                if l[i]+l[j]+l[k]==b:\n                    print(\"YES\")\n                    flag1=True\n                    break\n            if flag1:\n                break\n        if flag1:\n            break\n    else:\n        print(\"NO\")",
+          "final_attempt_code": "t = int(input())\nfor _ in range(t):\n    a,b=map(int,input().split())\n    l=list(map(int,input().split()))\n    flag1=False\n    for i in range(a):\n        for j in range(i+1,a):\n            for k in range(j+1,a):\n                if l[i]+l[j]+l[k]==b:\n                    print(\"YES\")\n                    flag1=True\n                    break\n            if flag1:\n                break\n        if flag1:\n            break\n    else:\n        print(\"NO\")",
+          "best_attempt_code": "t = int(input())\nfor _ in range(t):\n    a,b=map(int,input().split())\n    l=list(map(int,input().split()))\n    flag1=False\n    for i in range(a):\n        for j in range(i+1,a):\n            for k in range(j+1,a):\n                if l[i]+l[j]+l[k]==b:\n                    print(\"YES\")\n                    flag1=True\n                    break\n            if flag1:\n                break\n        if flag1:\n            break\n    else:\n        print(\"NO\")",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 12\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 12,
+              "source_code": "t = int(input())\nfor _ in range(t):\n    a,b=map(int,input().split())\n    l=list(map(int,input().split()))\n    flag1=False\n    for i in range(a):\n        for j in range(i+1,a):\n            for k in range(j+1,a):\n                if l[i]+l[j]+l[k]==b:\n                    print(\"YES\")\n                    flag1=True\n                    break\n            if flag1:\n                break\n        if flag1:\n            break\n    else:\n        print(\"NO\")"
+            }
+          ],
+          "title": "Problem 22245",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 21187,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 12,
+          "first_attempt_code": "a=int(input())\nl=[list(map(int,input().split())) for i in range(a)]\nx=l[0][0]\ny=l[0][a-1]\nflag1=False\nflag2=False\nfor i in range(a):\n    for j in range(a):\n        if i==j and l[i][j]!=x:\n            flag1=True\n        if i+j==a-1 and l[i][j]!=y:\n            flag2=True\nprint(\"Double Harmony\" if (not flag1 and not flag2) else \"No Harmony\")",
+          "final_attempt_code": "a=int(input())\nl=[list(map(int,input().split())) for i in range(a)]\nx=l[0][0]\ny=l[0][a-1]\nflag1=False\nflag2=False\nfor i in range(a):\n    for j in range(a):\n        if i==j and l[i][j]!=x:\n            flag1=True\n        if i+j==a-1 and l[i][j]!=y:\n            flag2=True\nprint(\"Double Harmony\" if (not flag1 and not flag2) else \"No Harmony\")",
+          "best_attempt_code": "a=int(input())\nl=[list(map(int,input().split())) for i in range(a)]\nx=l[0][0]\ny=l[0][a-1]\nflag1=False\nflag2=False\nfor i in range(a):\n    for j in range(a):\n        if i==j and l[i][j]!=x:\n            flag1=True\n        if i+j==a-1 and l[i][j]!=y:\n            flag2=True\nprint(\"Double Harmony\" if (not flag1 and not flag2) else \"No Harmony\")",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 12\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 12,
+              "source_code": "a=int(input())\nl=[list(map(int,input().split())) for i in range(a)]\nx=l[0][0]\ny=l[0][a-1]\nflag1=False\nflag2=False\nfor i in range(a):\n    for j in range(a):\n        if i==j and l[i][j]!=x:\n            flag1=True\n        if i+j==a-1 and l[i][j]!=y:\n            flag2=True\nprint(\"Double Harmony\" if (not flag1 and not flag2) else \"No Harmony\")"
+            }
+          ],
+          "title": "Problem 21187",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 22270,
+          "total_attempts": 6,
+          "solved": true,
+          "best_attempt_index": 6,
+          "best_status": "Accepted",
+          "best_tests_passed": 6,
+          "first_attempt_code": "def isPresent(n, nums, target):\n    return nums.index(target) if target in nums else -1",
+          "final_attempt_code": "def isPresent(n, nums, target):\n    def bs(nums,target):\n        l=0\n        r=len(nums)-1\n        while l<=r:\n            m=(l+r)//2\n            if nums[m]==target:\n                return m\n            elif nums[m]>target:\n                l=m+1\n            else:\n                r=m-1\n        return -1\n    return bs(nums,target)",
+          "best_attempt_code": "def isPresent(n, nums, target):\n    def bs(nums,target):\n        l=0\n        r=len(nums)-1\n        while l<=r:\n            m=(l+r)//2\n            if nums[m]==target:\n                return m\n            elif nums[m]>target:\n                l=m+1\n            else:\n                r=m-1\n        return -1\n    return bs(nums,target)",
+          "timeline_summary": "Attempt 1 | Status: Time Limit Exceeded | Tests Passed: 5\nInitial code written.\n\nAttempt 2 | Status: Time Limit Exceeded | Tests Passed: 4\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 2: Modified `return nums.index(target) if target in nums else -1` -> `return nums.index(target) if target in set(nums) else -1`\n\nAttempt 5 | Status: Wrong Answer | Tests Passed: 3\nDiff metrics: +13 lines, -1 lines.\nChanges:\n  - Line 2: Modified `return nums.index(target) if target in set(nums) else -1` -> `def bs(nums,target):`\n  - Line 3: Added `l=0`\n  - Line 4: Added `r=len(nums)-1`\n  - Line 5: Added `while l<r:`\n  - Line 6: Added `m=(l+r)//2`\n  - Line 7: Added `if nums[m]==target:`\n  - Line 8: Added `return m`\n  - Line 9: Added `elif nums[m]>target:`\n  - Line 10: Added `l=m+1`\n  - Line 11: Added `else:`\n  - Line 12: Added `r=m-1`\n  - Line 13: Added `return -1`\n  - Line 14: Added `return bs(nums,target)`\n\nAttempt 6 | Status: Accepted | Tests Passed: 6\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 5: Modified `while l<r:` -> `while l<=r:`",
+          "transitions_count": 4,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 5,
+              "source_code": "def isPresent(n, nums, target):\n    return nums.index(target) if target in nums else -1"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 4,
+              "source_code": "def isPresent(n, nums, target):\n    return nums.index(target) if target in set(nums) else -1"
+            },
+            {
+              "attempt_index": 5,
+              "status_name": "Wrong Answer",
+              "tests_passing": 3,
+              "source_code": "def isPresent(n, nums, target):\n    def bs(nums,target):\n        l=0\n        r=len(nums)-1\n        while l<r:\n            m=(l+r)//2\n            if nums[m]==target:\n                return m\n            elif nums[m]>target:\n                l=m+1\n            else:\n                r=m-1\n        return -1\n    return bs(nums,target)"
+            },
+            {
+              "attempt_index": 6,
+              "status_name": "Accepted",
+              "tests_passing": 6,
+              "source_code": "def isPresent(n, nums, target):\n    def bs(nums,target):\n        l=0\n        r=len(nums)-1\n        while l<=r:\n            m=(l+r)//2\n            if nums[m]==target:\n                return m\n            elif nums[m]>target:\n                l=m+1\n            else:\n                r=m-1\n        return -1\n    return bs(nums,target)"
+            }
+          ],
+          "title": "Problem 22270",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 5792,
+          "total_attempts": 15,
+          "solved": true,
+          "best_attempt_index": 15,
+          "best_status": "Accepted",
+          "best_tests_passed": 11,
+          "first_attempt_code": "def nextGreatestLetter(letters, target):\n    if target not in s:\n        return s[0]\n    else:\n        return s[s.index(target)+1]",
+          "final_attempt_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target>letters[-1] else letters[x]",
+          "best_attempt_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target>letters[-1] else letters[x]",
+          "timeline_summary": "Attempt 1 | Status: Runtime Error | Tests Passed: 0\nInitial code written.\n\nAttempt 2 | Status: Time Limit Exceeded | Tests Passed: 4\nDiff metrics: +1 lines, -0 lines.\nChanges:\n  - Line 2: Added `s=sorted(letters)`\n\nAttempt 3 | Status: Runtime Error | Tests Passed: 0\nDiff metrics: +2 lines, -3 lines.\nChanges:\n  - Line 2: Deleted `s=sorted(letters)`\n  - Line 3: Modified `return s[0]` -> `return letters[0]`\n  - Line 5: Modified `return s[s.index(target)+1]` -> `return letters[letters.index(target)+1]`\n\nAttempt 4 | Status: Wrong Answer | Tests Passed: 5\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 2: Modified `if target not in s:` -> `if target not in letters:`\n\nAttempt 6 | Status: Time Limit Exceeded | Tests Passed: 4\nDiff metrics: +7 lines, -4 lines.\nChanges:\n  - Line 2: Modified `if target not in letters:` -> `flag=False`\n  - Line 3: Added `for i in letters:`\n  - Line 4: Added `if flag:`\n  - Line 5: Added `return i`\n  - Line 6: Added `if i==target:`\n  - Line 7: Added `flag=True`\n  - Line 8: Deleted `return letters[0]`\n  - Line 8: Added `return (letters[0])`\n  - Line 9: Deleted `else:`\n  - Line 9: Deleted `return letters[letters.index(target)+1]`\n\nAttempt 7 | Status: Runtime Error | Tests Passed: 5\nDiff metrics: +14 lines, -7 lines.\nChanges:\n  - Line 2: Deleted `flag=False`\n  - Line 2: Deleted `for i in letters:`\n  - Line 2: Modified `if flag:` -> `def bs(letters,target):`\n  - Line 3: Added `l=0`\n  - Line 4: Added `r=len(letters)-1`\n  - Line 5: Added `while l<=r:`\n  - Line 6: Added `m=(l+r)//2`\n  - Line 7: Added `if letters[m]==target:`\n  - Line 8: Added `return m+1`\n  - Line 9: Added `elif letters[m]<target:`\n  - Line 10: Added `l=m+1`\n  - Line 11: Added `else:`\n  - Line 12: Added `r=m-1`\n  - Line 13: Deleted `return i`\n  - Line 13: Added `return l`\n  - ... and 5 more line changes.\n\nAttempt 8 | Status: Runtime Error | Tests Passed: 8\nDiff metrics: +1 lines, -3 lines.\nChanges:\n  - Line 7: Deleted `if letters[m]==target:`\n  - Line 7: Added `if letters[m]<=target:`\n  - Line 8: Deleted `return m+1`\n  - Line 8: Deleted `elif letters[m]<target:`\n\nAttempt 9 | Status: Wrong Answer | Tests Passed: 8\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 13: Modified `return letters[x]` -> `return letters[0] if target not in letters else letters[x]`\n\nAttempt 11 | Status: Runtime Error | Tests Passed: 8\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 13: Deleted `return letters[0] if target not in letters else letters[x]`\n  - Line 13: Added `return letters[0] if target>letters[-1] not in letters else letters[x]`\n\nAttempt 15 | Status: Accepted | Tests Passed: 11\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 13: Deleted `return letters[0] if target>letters[-1] not in letters else letters[x]`\n  - Line 13: Added `return letters[0] if target>letters[-1] else letters[x]`",
+          "transitions_count": 10,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Runtime Error",
+              "tests_passing": 0,
+              "source_code": "def nextGreatestLetter(letters, target):\n    if target not in s:\n        return s[0]\n    else:\n        return s[s.index(target)+1]"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 4,
+              "source_code": "def nextGreatestLetter(letters, target):\n    s=sorted(letters)\n    if target not in s:\n        return s[0]\n    else:\n        return s[s.index(target)+1]"
+            },
+            {
+              "attempt_index": 3,
+              "status_name": "Runtime Error",
+              "tests_passing": 0,
+              "source_code": "def nextGreatestLetter(letters, target):\n    if target not in s:\n        return letters[0]\n    else:\n        return letters[letters.index(target)+1]"
+            },
+            {
+              "attempt_index": 4,
+              "status_name": "Wrong Answer",
+              "tests_passing": 5,
+              "source_code": "def nextGreatestLetter(letters, target):\n    if target not in letters:\n        return letters[0]\n    else:\n        return letters[letters.index(target)+1]"
+            },
+            {
+              "attempt_index": 6,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 4,
+              "source_code": "def nextGreatestLetter(letters, target):\n    flag=False\n    for i in letters:\n        if flag:\n            return i\n        if i==target:\n            flag=True\n    return (letters[0])"
+            },
+            {
+              "attempt_index": 7,
+              "status_name": "Runtime Error",
+              "tests_passing": 5,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]==target:\n                return m+1\n            elif letters[m]<target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[x]"
+            },
+            {
+              "attempt_index": 8,
+              "status_name": "Runtime Error",
+              "tests_passing": 8,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[x]"
+            },
+            {
+              "attempt_index": 9,
+              "status_name": "Wrong Answer",
+              "tests_passing": 8,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target not in letters else letters[x]"
+            },
+            {
+              "attempt_index": 11,
+              "status_name": "Runtime Error",
+              "tests_passing": 8,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target>letters[-1] not in letters else letters[x]"
+            },
+            {
+              "attempt_index": 15,
+              "status_name": "Accepted",
+              "tests_passing": 11,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target>letters[-1] else letters[x]"
+            }
+          ],
+          "title": "Problem 5792",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 141,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 8,
+          "first_attempt_code": "'''\n    class Node:\n        def __init__(self, data):   # data -> value stored in node\n            self.data = data\n            self.next = None\n'''\ndef reverseLL(head):\n    prev=None\n    while head:\n        temp=head.next\n        head.next=prev\n        prev=head\n        head=temp\n    head=prev\n    return head",
+          "final_attempt_code": "'''\n    class Node:\n        def __init__(self, data):   # data -> value stored in node\n            self.data = data\n            self.next = None\n'''\ndef reverseLL(head):\n    prev=None\n    while head:\n        temp=head.next\n        head.next=prev\n        prev=head\n        head=temp\n    head=prev\n    return head",
+          "best_attempt_code": "'''\n    class Node:\n        def __init__(self, data):   # data -> value stored in node\n            self.data = data\n            self.next = None\n'''\ndef reverseLL(head):\n    prev=None\n    while head:\n        temp=head.next\n        head.next=prev\n        prev=head\n        head=temp\n    head=prev\n    return head",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 8\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 8,
+              "source_code": "'''\n    class Node:\n        def __init__(self, data):   # data -> value stored in node\n            self.data = data\n            self.next = None\n'''\ndef reverseLL(head):\n    prev=None\n    while head:\n        temp=head.next\n        head.next=prev\n        prev=head\n        head=temp\n    head=prev\n    return head"
+            }
+          ],
+          "title": "Problem 141",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25048,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 30,
+          "first_attempt_code": "def InnerSum(root):\n    def s(root):\n        if not root:\n            return 0\n        if not root.left and not root.right:\n            return 0\n        return root.val+s(root.left)+s(root.right)\n    return s(root.left)+s(root.right)",
+          "final_attempt_code": "def InnerSum(root):\n    def s(root):\n        if not root:\n            return 0\n        if not root.left and not root.right:\n            return 0\n        return root.val+s(root.left)+s(root.right)\n    return s(root.left)+s(root.right)",
+          "best_attempt_code": "def InnerSum(root):\n    def s(root):\n        if not root:\n            return 0\n        if not root.left and not root.right:\n            return 0\n        return root.val+s(root.left)+s(root.right)\n    return s(root.left)+s(root.right)",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 30\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 30,
+              "source_code": "def InnerSum(root):\n    def s(root):\n        if not root:\n            return 0\n        if not root.left and not root.right:\n            return 0\n        return root.val+s(root.left)+s(root.right)\n    return s(root.left)+s(root.right)"
+            }
+          ],
+          "title": "Problem 25048",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25044,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 24,
+          "first_attempt_code": "'''\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n'''\n\ndef count_frequency(root, k):\n    if not root:\n        return 0\n    if root.val==k:\n        return 1+count_frequency(root.left,k)+count_frequency(root.right,k)\n    return count_frequency(root.left,k)+count_frequency(root.right,k)",
+          "final_attempt_code": "'''\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n'''\n\ndef count_frequency(root, k):\n    if not root:\n        return 0\n    if root.val==k:\n        return 1+count_frequency(root.left,k)+count_frequency(root.right,k)\n    return count_frequency(root.left,k)+count_frequency(root.right,k)",
+          "best_attempt_code": "'''\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n'''\n\ndef count_frequency(root, k):\n    if not root:\n        return 0\n    if root.val==k:\n        return 1+count_frequency(root.left,k)+count_frequency(root.right,k)\n    return count_frequency(root.left,k)+count_frequency(root.right,k)",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 24\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 24,
+              "source_code": "'''\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n'''\n\ndef count_frequency(root, k):\n    if not root:\n        return 0\n    if root.val==k:\n        return 1+count_frequency(root.left,k)+count_frequency(root.right,k)\n    return count_frequency(root.left,k)+count_frequency(root.right,k)"
+            }
+          ],
+          "title": "Problem 25044",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25086,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 10,
+          "first_attempt_code": "'''\nclass Node:\ndef __init__(self, data):\nself.data = data\nself.next = None\n'''\n\ndef swapPairs(head):\n    def f(head,k):\n        def r(start,end):\n            prev=None\n            while start!=end:\n                temp=start.next\n                start.next=prev\n                prev=start\n                start=temp\n            return prev\n        \n        x=Node(-1)\n        x.next=head\n        pre=x\n        while True:\n            kth=pre\n            for i in range(k):\n                kth=kth.next\n                if not kth: \n                    return x.next\n            nxt=kth.next\n            start=pre.next\n            pre.next=r(start,nxt)\n            start.next=nxt\n            pre=start\n    return f(head,2)",
+          "final_attempt_code": "'''\nclass Node:\ndef __init__(self, data):\nself.data = data\nself.next = None\n'''\n\ndef swapPairs(head):\n    def f(head,k):\n        def r(start,end):\n            prev=None\n            while start!=end:\n                temp=start.next\n                start.next=prev\n                prev=start\n                start=temp\n            return prev\n        \n        x=Node(-1)\n        x.next=head\n        pre=x\n        while True:\n            kth=pre\n            for i in range(k):\n                kth=kth.next\n                if not kth: \n                    return x.next\n            nxt=kth.next\n            start=pre.next\n            pre.next=r(start,nxt)\n            start.next=nxt\n            pre=start\n    return f(head,2)",
+          "best_attempt_code": "'''\nclass Node:\ndef __init__(self, data):\nself.data = data\nself.next = None\n'''\n\ndef swapPairs(head):\n    def f(head,k):\n        def r(start,end):\n            prev=None\n            while start!=end:\n                temp=start.next\n                start.next=prev\n                prev=start\n                start=temp\n            return prev\n        \n        x=Node(-1)\n        x.next=head\n        pre=x\n        while True:\n            kth=pre\n            for i in range(k):\n                kth=kth.next\n                if not kth: \n                    return x.next\n            nxt=kth.next\n            start=pre.next\n            pre.next=r(start,nxt)\n            start.next=nxt\n            pre=start\n    return f(head,2)",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 10\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 10,
+              "source_code": "'''\nclass Node:\ndef __init__(self, data):\nself.data = data\nself.next = None\n'''\n\ndef swapPairs(head):\n    def f(head,k):\n        def r(start,end):\n            prev=None\n            while start!=end:\n                temp=start.next\n                start.next=prev\n                prev=start\n                start=temp\n            return prev\n        \n        x=Node(-1)\n        x.next=head\n        pre=x\n        while True:\n            kth=pre\n            for i in range(k):\n                kth=kth.next\n                if not kth: \n                    return x.next\n            nxt=kth.next\n            start=pre.next\n            pre.next=r(start,nxt)\n            start.next=nxt\n            pre=start\n    return f(head,2)"
+            }
+          ],
+          "title": "Problem 25086",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25135,
+          "total_attempts": 2,
+          "solved": true,
+          "best_attempt_index": 2,
+          "best_status": "Accepted",
+          "best_tests_passed": 22,
+          "first_attempt_code": "def isPowerOfTwo(n):\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False",
+          "final_attempt_code": "def isPowerOfTwo(n):\n    if n==0:\n        return False\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False",
+          "best_attempt_code": "def isPowerOfTwo(n):\n    if n==0:\n        return False\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 21\nInitial code written.\n\nAttempt 2 | Status: Accepted | Tests Passed: 22\nDiff metrics: +2 lines, -0 lines.\nChanges:\n  - Line 2: Added `if n==0:`\n  - Line 3: Added `return False`",
+          "transitions_count": 2,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Wrong Answer",
+              "tests_passing": 21,
+              "source_code": "def isPowerOfTwo(n):\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Accepted",
+              "tests_passing": 22,
+              "source_code": "def isPowerOfTwo(n):\n    if n==0:\n        return False\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False"
+            }
+          ],
+          "title": "Problem 25135",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 24379,
+          "total_attempts": 9,
+          "solved": true,
+          "best_attempt_index": 9,
+          "best_status": "Accepted",
+          "best_tests_passed": 12,
+          "first_attempt_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if i>=0:\n        stack.append(i)\n    else:\n        if stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):\n            pass\n        elif stack and int(((stack[-1])**2)**0.5)<int(((i)**2)**0.5):\n            stack.pop()\n            stack.append(i)\n        elif stack and int(((stack[-1])**2)**0.5)==int(((i)**2)**0.5):\n            stack.pop()\n        else:\n            stack.append(i)\nprint(*stack)",
+          "final_attempt_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n                break\n            else:\n                ad=False\n                break\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)",
+          "best_attempt_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n                break\n            else:\n                ad=False\n                break\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 7\nInitial code written.\n\nAttempt 2 | Status: Wrong Answer | Tests Passed: 9\nDiff metrics: +3 lines, -1 lines.\nChanges:\n  - Line 8: Added `if stack and stack[-1]<0 and i<0:`\n  - Line 9: Added `stack.append(i)`\n  - Line 10: Modified `if stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):` -> `elif stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):`\n\nAttempt 3 | Status: Wrong Answer | Tests Passed: 6\nDiff metrics: +13 lines, -12 lines.\nChanges:\n  - Line 5: Modified `if i>=0:` -> `if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):`\n  - Line 8: Modified `if stack and stack[-1]<0 and i<0:` -> `while stack:`\n  - Line 9: Added `if (stack[-1]<0 and i<0) or (stack[-1]>0 and i>0):`\n  - Line 10: Added `break`\n  - Line 11: Added `if abs(stack[-1])>abs(i):`\n  - Line 12: Added `break`\n  - Line 13: Added `elif abs(stack[-1])<abs(i):`\n  - Line 14: Added `stack.pop()`\n  - Line 15: Modified `stack.append(i)` -> `stack.append(i)`\n  - Line 16: Added `elif abs(stack[-1])==abs(i):`\n  - Line 17: Deleted `elif stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):`\n  - Line 17: Deleted `pass`\n  - Line 17: Deleted `elif stack and int(((stack[-1])**2)**0.5)<int(((i)**2)**0.5):`\n  - Line 17: Modified `stack.pop()` -> `stack.pop()`\n  - Line 18: Added `else:`\n  - ... and 5 more line changes.\n\nAttempt 4 | Status: Wrong Answer | Tests Passed: 8\nDiff metrics: +5 lines, -4 lines.\nChanges:\n  - Line 9: Modified `if (stack[-1]<0 and i<0) or (stack[-1]>0 and i>0):` -> `if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):`\n  - Line 11: Modified `if abs(stack[-1])>abs(i):` -> `elif abs(stack[-1])>abs(i):`\n  - Line 13: Modified `elif abs(stack[-1])<abs(i):` -> `elif stack and abs(stack[-1])<abs(i):`\n  - Line 14: Added `while stack and abs(stack[-1])<abs(i):`\n  - Line 15: Modified `stack.pop()` -> `stack.pop()`\n\nAttempt 5 | Status: Wrong Answer | Tests Passed: 7\nDiff metrics: +52 lines, -11 lines.\nChanges:\n  - Line 8: Added `ad=True`\n  - Line 9: Added `while stack and (abs(stack[-1])<=abs(i) and ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0))):`\n  - Line 10: Deleted `while stack:`\n  - Line 10: Deleted `if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):`\n  - Line 10: Deleted `break`\n  - Line 10: Deleted `elif abs(stack[-1])>abs(i):`\n  - Line 10: Added `if abs(stack[-1])<abs(i):`\n  - Line 11: Deleted `break`\n  - Line 11: Deleted `elif stack and abs(stack[-1])<abs(i):`\n  - Line 11: Deleted `while stack and abs(stack[-1])<abs(i):`\n  - Line 11: Deleted `stack.pop()`\n  - Line 11: Added `stack.pop()`\n  - Line 12: Deleted `stack.append(i)`\n  - Line 14: Modified `else:` -> `ad=False`\n  - Line 15: Added `if ad:`\n  - ... and 46 more line changes.\n\nAttempt 6 | Status: Time Limit Exceeded | Tests Passed: 7\nDiff metrics: +3 lines, -1 lines.\nChanges:\n  - Line 9: Deleted `while stack and (abs(stack[-1])<=abs(i) and ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0))):`\n  - Line 9: Added `while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):`\n  - Line 14: Added `ad=False`\n  - Line 15: Added `else:`\n\nAttempt 7 | Status: Wrong Answer | Tests Passed: 9\nDiff metrics: +1 lines, -0 lines.\nChanges:\n  - Line 17: Added `break`\n\nAttempt 9 | Status: Accepted | Tests Passed: 12\nDiff metrics: +1 lines, -0 lines.\nChanges:\n  - Line 15: Added `break`",
+          "transitions_count": 8,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Wrong Answer",
+              "tests_passing": 7,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if i>=0:\n        stack.append(i)\n    else:\n        if stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):\n            pass\n        elif stack and int(((stack[-1])**2)**0.5)<int(((i)**2)**0.5):\n            stack.pop()\n            stack.append(i)\n        elif stack and int(((stack[-1])**2)**0.5)==int(((i)**2)**0.5):\n            stack.pop()\n        else:\n            stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Wrong Answer",
+              "tests_passing": 9,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if i>=0:\n        stack.append(i)\n    else:\n        if stack and stack[-1]<0 and i<0:\n            stack.append(i)\n        elif stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):\n            pass\n        elif stack and int(((stack[-1])**2)**0.5)<int(((i)**2)**0.5):\n            stack.pop()\n            stack.append(i)\n        elif stack and int(((stack[-1])**2)**0.5)==int(((i)**2)**0.5):\n            stack.pop()\n        else:\n            stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 3,
+              "status_name": "Wrong Answer",
+              "tests_passing": 6,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        while stack:\n            if (stack[-1]<0 and i<0) or (stack[-1]>0 and i>0):\n                break\n            if abs(stack[-1])>abs(i):\n                break\n            elif abs(stack[-1])<abs(i):\n                stack.pop()\n                stack.append(i)\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n            else:\n                stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 4,
+              "status_name": "Wrong Answer",
+              "tests_passing": 8,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        while stack:\n            if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n                break\n            elif abs(stack[-1])>abs(i):\n                break\n            elif stack and abs(stack[-1])<abs(i):\n                while stack and abs(stack[-1])<abs(i):\n                    stack.pop()\n                stack.append(i)\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n            else:\n                stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 5,
+              "status_name": "Wrong Answer",
+              "tests_passing": 7,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and (abs(stack[-1])<=abs(i) and ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0))):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 6,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 7,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n            else:\n                ad=False\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 7,
+              "status_name": "Wrong Answer",
+              "tests_passing": 9,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n            else:\n                ad=False\n                break\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 9,
+              "status_name": "Accepted",
+              "tests_passing": 12,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n                break\n            else:\n                ad=False\n                break\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)"
+            }
+          ],
+          "title": "Problem 24379",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25040,
+          "total_attempts": 3,
+          "solved": true,
+          "best_attempt_index": 3,
+          "best_status": "Accepted",
+          "best_tests_passed": 15,
+          "first_attempt_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if t[i]==j:\n            i+=1\n    return i==len(t)",
+          "final_attempt_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if i==len(t):\n            return True\n        if t[i]==j:\n            i+=1\n    return i==len(t)",
+          "best_attempt_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if i==len(t):\n            return True\n        if t[i]==j:\n            i+=1\n    return i==len(t)",
+          "timeline_summary": "Attempt 1 | Status: Runtime Error | Tests Passed: 6\nInitial code written.\n\nAttempt 3 | Status: Accepted | Tests Passed: 15\nDiff metrics: +2 lines, -0 lines.\nChanges:\n  - Line 4: Added `if i==len(t):`\n  - Line 5: Added `return True`",
+          "transitions_count": 2,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Runtime Error",
+              "tests_passing": 6,
+              "source_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if t[i]==j:\n            i+=1\n    return i==len(t)"
+            },
+            {
+              "attempt_index": 3,
+              "status_name": "Accepted",
+              "tests_passing": 15,
+              "source_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if i==len(t):\n            return True\n        if t[i]==j:\n            i+=1\n    return i==len(t)"
+            }
+          ],
+          "title": "Problem 25040",
+          "description": "No description provided."
+        }
+      ],
+      "assignment_id": 85496,
+      "ai_critique_completed": true
+    },
+    "sai.bharghav@newtonschool.co": {
+      "user_id": 2328804,
+      "email": "sai.bharghav@newtonschool.co",
+      "total_submissions": 45,
+      "solved_count": 14,
+      "attempted_count": 14,
+      "solved_questions": [
+        "21107",
+        "25133",
+        "24604",
+        "22245",
+        "21187",
+        "22270",
+        "5792",
+        "141",
+        "25048",
+        "25044",
+        "25086",
+        "25135",
+        "24379",
+        "25040"
+      ],
+      "attempted_questions": [
+        "21107",
+        "25133",
+        "24604",
+        "22245",
+        "21187",
+        "22270",
+        "5792",
+        "141",
+        "25048",
+        "25044",
+        "25086",
+        "25135",
+        "24379",
+        "25040"
+      ],
+      "feedback": {
+        "strengths": [
+          "Demonstrated strong logical thinking by successfully implementing solutions for various problems with minimal attempts.",
+          "Consistently used Python's built-in functions and constructs effectively, such as list comprehensions and the range function.",
+          "Showed resilience in debugging, particularly in the later attempts of more complex problems, leading to successful resolutions."
+        ],
+        "weaknesses": [
+          "Struggles with optimizing algorithms, as seen in the nested loops for Problem 22245, which could lead to performance issues for larger inputs.",
+          "Occasionally misses edge cases, such as in Problem 25040 where the length of 't' was not checked before accessing its elements, leading to potential runtime errors.",
+          "Has a tendency to use verbose structures that could be simplified, particularly in problems like 24379, where the logic could be streamlined for better readability."
+        ],
+        "recommendations": [
+          "Study the 'Two Pointers Technique' to improve efficiency in problems involving arrays or lists, which can help reduce time complexity in nested loops.",
+          "Practice identifying and handling edge cases in coding problems by reviewing resources like 'GeeksforGeeks on Edge Cases in Algorithms'.",
+          "Explore code refactoring techniques to enhance readability and maintainability, focusing on simplifying complex logic into clearer, more concise structures."
+        ],
+        "question_feedback": {
+          "21107": {
+            "summary": "Solved on the first attempt with correct logic and output.",
+            "critique": "The solution is efficient and straightforward, utilizing Python's range function effectively. No changes were needed.",
+            "score_rating": "Excellent"
+          },
+          "25133": {
+            "summary": "Successfully solved on the first attempt, counting consonants correctly.",
+            "critique": "The code is clear and concise, but consider using a set for vowels to improve lookup efficiency.",
+            "score_rating": "Good Effort"
+          },
+          "24604": {
+            "summary": "Initially received a wrong answer but corrected it by changing print to return.",
+            "critique": "The logic was sound, but the output method was incorrect. Ensure to return values in functions instead of printing them directly.",
+            "score_rating": "Good Effort"
+          },
+          "22245": {
+            "summary": "Solved on the first attempt, but used nested loops leading to potential inefficiency.",
+            "critique": "Consider using combinations or a more efficient algorithm to reduce time complexity. The current approach may not scale well.",
+            "score_rating": "Needs Help"
+          },
+          "21187": {
+            "summary": "Successfully solved on the first attempt with correct logic.",
+            "critique": "The solution is effective and well-structured. No changes were needed.",
+            "score_rating": "Excellent"
+          },
+          "22270": {
+            "summary": "Faced multiple attempts due to TLE and wrong answers but ultimately solved.",
+            "critique": "The transition to binary search was a good move. Ensure to handle edge cases and optimize further for larger inputs.",
+            "score_rating": "Good Effort"
+          },
+          "5792": {
+            "summary": "Encountered multiple runtime errors but eventually solved.",
+            "critique": "The debugging process was thorough. Focus on simplifying the logic to avoid runtime issues in the future.",
+            "score_rating": "Needs Help"
+          },
+          "141": {
+            "summary": "Solved on the first attempt with correct logic.",
+            "critique": "The implementation is clear and efficient. No changes were needed.",
+            "score_rating": "Excellent"
+          },
+          "25048": {
+            "summary": "Solved on the first attempt with correct logic.",
+            "critique": "The recursive approach is well-implemented. No changes were needed.",
+            "score_rating": "Excellent"
+          },
+          "25044": {
+            "summary": "Solved on the first attempt with correct logic.",
+            "critique": "The recursive structure is clear and effective. No changes were needed.",
+            "score_rating": "Excellent"
+          },
+          "25086": {
+            "summary": "Solved on the first attempt with correct logic.",
+            "critique": "The implementation is clear and efficient. No changes were needed.",
+            "score_rating": "Excellent"
+          },
+          "25135": {
+            "summary": "Initially received a wrong answer but corrected it by adding a check for n==0.",
+            "critique": "Good job identifying the edge case. Ensure to think about all possible input scenarios.",
+            "score_rating": "Good Effort"
+          },
+          "24379": {
+            "summary": "Faced multiple wrong answers but ultimately solved.",
+            "critique": "The logic became overly complex. Simplifying the approach could lead to clearer and more maintainable code.",
+            "score_rating": "Needs Help"
+          },
+          "25040": {
+            "summary": "Faced a runtime error initially but corrected it by checking the length of t.",
+            "critique": "Good job on debugging. Always check for potential out-of-bounds errors when accessing list elements.",
+            "score_rating": "Good Effort"
+          }
+        }
+      },
+      "attempts_details": [
+        {
+          "question_id": 21107,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 11,
+          "first_attempt_code": "a,b=map(int,input().split())\nif a%2==1:\n    print(*range(a,b+1,2))\nelse:\n    print(*range(a+1,b+1,2))",
+          "final_attempt_code": "a,b=map(int,input().split())\nif a%2==1:\n    print(*range(a,b+1,2))\nelse:\n    print(*range(a+1,b+1,2))",
+          "best_attempt_code": "a,b=map(int,input().split())\nif a%2==1:\n    print(*range(a,b+1,2))\nelse:\n    print(*range(a+1,b+1,2))",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 11\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 11,
+              "source_code": "a,b=map(int,input().split())\nif a%2==1:\n    print(*range(a,b+1,2))\nelse:\n    print(*range(a+1,b+1,2))"
+            }
+          ],
+          "title": "Problem 21107",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25133,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 27,
+          "first_attempt_code": "a=input()\nc=0\nfor i in a:\n    if i not in \"aeiou\":\n        c+=1\nprint(c)",
+          "final_attempt_code": "a=input()\nc=0\nfor i in a:\n    if i not in \"aeiou\":\n        c+=1\nprint(c)",
+          "best_attempt_code": "a=input()\nc=0\nfor i in a:\n    if i not in \"aeiou\":\n        c+=1\nprint(c)",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 27\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 27,
+              "source_code": "a=input()\nc=0\nfor i in a:\n    if i not in \"aeiou\":\n        c+=1\nprint(c)"
+            }
+          ],
+          "title": "Problem 25133",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 24604,
+          "total_attempts": 2,
+          "solved": true,
+          "best_attempt_index": 2,
+          "best_status": "Accepted",
+          "best_tests_passed": 20,
+          "first_attempt_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    print(e-o)",
+          "final_attempt_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    return e-o",
+          "best_attempt_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    return e-o",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 0\nInitial code written.\n\nAttempt 2 | Status: Accepted | Tests Passed: 20\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 9: Modified `print(e-o)` -> `return e-o`",
+          "transitions_count": 2,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Wrong Answer",
+              "tests_passing": 0,
+              "source_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    print(e-o)"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Accepted",
+              "tests_passing": 20,
+              "source_code": "def findDifference(N, nums):\n    e=0\n    o=0\n    for i in nums:\n        if i%2==0:\n            e+=i\n        else:\n            o+=i\n    return e-o"
+            }
+          ],
+          "title": "Problem 24604",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 22245,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 12,
+          "first_attempt_code": "t = int(input())\nfor _ in range(t):\n    a,b=map(int,input().split())\n    l=list(map(int,input().split()))\n    flag1=False\n    for i in range(a):\n        for j in range(i+1,a):\n            for k in range(j+1,a):\n                if l[i]+l[j]+l[k]==b:\n                    print(\"YES\")\n                    flag1=True\n                    break\n            if flag1:\n                break\n        if flag1:\n            break\n    else:\n        print(\"NO\")",
+          "final_attempt_code": "t = int(input())\nfor _ in range(t):\n    a,b=map(int,input().split())\n    l=list(map(int,input().split()))\n    flag1=False\n    for i in range(a):\n        for j in range(i+1,a):\n            for k in range(j+1,a):\n                if l[i]+l[j]+l[k]==b:\n                    print(\"YES\")\n                    flag1=True\n                    break\n            if flag1:\n                break\n        if flag1:\n            break\n    else:\n        print(\"NO\")",
+          "best_attempt_code": "t = int(input())\nfor _ in range(t):\n    a,b=map(int,input().split())\n    l=list(map(int,input().split()))\n    flag1=False\n    for i in range(a):\n        for j in range(i+1,a):\n            for k in range(j+1,a):\n                if l[i]+l[j]+l[k]==b:\n                    print(\"YES\")\n                    flag1=True\n                    break\n            if flag1:\n                break\n        if flag1:\n            break\n    else:\n        print(\"NO\")",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 12\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 12,
+              "source_code": "t = int(input())\nfor _ in range(t):\n    a,b=map(int,input().split())\n    l=list(map(int,input().split()))\n    flag1=False\n    for i in range(a):\n        for j in range(i+1,a):\n            for k in range(j+1,a):\n                if l[i]+l[j]+l[k]==b:\n                    print(\"YES\")\n                    flag1=True\n                    break\n            if flag1:\n                break\n        if flag1:\n            break\n    else:\n        print(\"NO\")"
+            }
+          ],
+          "title": "Problem 22245",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 21187,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 12,
+          "first_attempt_code": "a=int(input())\nl=[list(map(int,input().split())) for i in range(a)]\nx=l[0][0]\ny=l[0][a-1]\nflag1=False\nflag2=False\nfor i in range(a):\n    for j in range(a):\n        if i==j and l[i][j]!=x:\n            flag1=True\n        if i+j==a-1 and l[i][j]!=y:\n            flag2=True\nprint(\"Double Harmony\" if (not flag1 and not flag2) else \"No Harmony\")",
+          "final_attempt_code": "a=int(input())\nl=[list(map(int,input().split())) for i in range(a)]\nx=l[0][0]\ny=l[0][a-1]\nflag1=False\nflag2=False\nfor i in range(a):\n    for j in range(a):\n        if i==j and l[i][j]!=x:\n            flag1=True\n        if i+j==a-1 and l[i][j]!=y:\n            flag2=True\nprint(\"Double Harmony\" if (not flag1 and not flag2) else \"No Harmony\")",
+          "best_attempt_code": "a=int(input())\nl=[list(map(int,input().split())) for i in range(a)]\nx=l[0][0]\ny=l[0][a-1]\nflag1=False\nflag2=False\nfor i in range(a):\n    for j in range(a):\n        if i==j and l[i][j]!=x:\n            flag1=True\n        if i+j==a-1 and l[i][j]!=y:\n            flag2=True\nprint(\"Double Harmony\" if (not flag1 and not flag2) else \"No Harmony\")",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 12\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 12,
+              "source_code": "a=int(input())\nl=[list(map(int,input().split())) for i in range(a)]\nx=l[0][0]\ny=l[0][a-1]\nflag1=False\nflag2=False\nfor i in range(a):\n    for j in range(a):\n        if i==j and l[i][j]!=x:\n            flag1=True\n        if i+j==a-1 and l[i][j]!=y:\n            flag2=True\nprint(\"Double Harmony\" if (not flag1 and not flag2) else \"No Harmony\")"
+            }
+          ],
+          "title": "Problem 21187",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 22270,
+          "total_attempts": 6,
+          "solved": true,
+          "best_attempt_index": 6,
+          "best_status": "Accepted",
+          "best_tests_passed": 6,
+          "first_attempt_code": "def isPresent(n, nums, target):\n    return nums.index(target) if target in nums else -1",
+          "final_attempt_code": "def isPresent(n, nums, target):\n    def bs(nums,target):\n        l=0\n        r=len(nums)-1\n        while l<=r:\n            m=(l+r)//2\n            if nums[m]==target:\n                return m\n            elif nums[m]>target:\n                l=m+1\n            else:\n                r=m-1\n        return -1\n    return bs(nums,target)",
+          "best_attempt_code": "def isPresent(n, nums, target):\n    def bs(nums,target):\n        l=0\n        r=len(nums)-1\n        while l<=r:\n            m=(l+r)//2\n            if nums[m]==target:\n                return m\n            elif nums[m]>target:\n                l=m+1\n            else:\n                r=m-1\n        return -1\n    return bs(nums,target)",
+          "timeline_summary": "Attempt 1 | Status: Time Limit Exceeded | Tests Passed: 5\nInitial code written.\n\nAttempt 2 | Status: Time Limit Exceeded | Tests Passed: 4\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 2: Modified `return nums.index(target) if target in nums else -1` -> `return nums.index(target) if target in set(nums) else -1`\n\nAttempt 5 | Status: Wrong Answer | Tests Passed: 3\nDiff metrics: +13 lines, -1 lines.\nChanges:\n  - Line 2: Modified `return nums.index(target) if target in set(nums) else -1` -> `def bs(nums,target):`\n  - Line 3: Added `l=0`\n  - Line 4: Added `r=len(nums)-1`\n  - Line 5: Added `while l<r:`\n  - Line 6: Added `m=(l+r)//2`\n  - Line 7: Added `if nums[m]==target:`\n  - Line 8: Added `return m`\n  - Line 9: Added `elif nums[m]>target:`\n  - Line 10: Added `l=m+1`\n  - Line 11: Added `else:`\n  - Line 12: Added `r=m-1`\n  - Line 13: Added `return -1`\n  - Line 14: Added `return bs(nums,target)`\n\nAttempt 6 | Status: Accepted | Tests Passed: 6\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 5: Modified `while l<r:` -> `while l<=r:`",
+          "transitions_count": 4,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 5,
+              "source_code": "def isPresent(n, nums, target):\n    return nums.index(target) if target in nums else -1"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 4,
+              "source_code": "def isPresent(n, nums, target):\n    return nums.index(target) if target in set(nums) else -1"
+            },
+            {
+              "attempt_index": 5,
+              "status_name": "Wrong Answer",
+              "tests_passing": 3,
+              "source_code": "def isPresent(n, nums, target):\n    def bs(nums,target):\n        l=0\n        r=len(nums)-1\n        while l<r:\n            m=(l+r)//2\n            if nums[m]==target:\n                return m\n            elif nums[m]>target:\n                l=m+1\n            else:\n                r=m-1\n        return -1\n    return bs(nums,target)"
+            },
+            {
+              "attempt_index": 6,
+              "status_name": "Accepted",
+              "tests_passing": 6,
+              "source_code": "def isPresent(n, nums, target):\n    def bs(nums,target):\n        l=0\n        r=len(nums)-1\n        while l<=r:\n            m=(l+r)//2\n            if nums[m]==target:\n                return m\n            elif nums[m]>target:\n                l=m+1\n            else:\n                r=m-1\n        return -1\n    return bs(nums,target)"
+            }
+          ],
+          "title": "Problem 22270",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 5792,
+          "total_attempts": 15,
+          "solved": true,
+          "best_attempt_index": 15,
+          "best_status": "Accepted",
+          "best_tests_passed": 11,
+          "first_attempt_code": "def nextGreatestLetter(letters, target):\n    if target not in s:\n        return s[0]\n    else:\n        return s[s.index(target)+1]",
+          "final_attempt_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target>letters[-1] else letters[x]",
+          "best_attempt_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target>letters[-1] else letters[x]",
+          "timeline_summary": "Attempt 1 | Status: Runtime Error | Tests Passed: 0\nInitial code written.\n\nAttempt 2 | Status: Time Limit Exceeded | Tests Passed: 4\nDiff metrics: +1 lines, -0 lines.\nChanges:\n  - Line 2: Added `s=sorted(letters)`\n\nAttempt 3 | Status: Runtime Error | Tests Passed: 0\nDiff metrics: +2 lines, -3 lines.\nChanges:\n  - Line 2: Deleted `s=sorted(letters)`\n  - Line 3: Modified `return s[0]` -> `return letters[0]`\n  - Line 5: Modified `return s[s.index(target)+1]` -> `return letters[letters.index(target)+1]`\n\nAttempt 4 | Status: Wrong Answer | Tests Passed: 5\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 2: Modified `if target not in s:` -> `if target not in letters:`\n\nAttempt 6 | Status: Time Limit Exceeded | Tests Passed: 4\nDiff metrics: +7 lines, -4 lines.\nChanges:\n  - Line 2: Modified `if target not in letters:` -> `flag=False`\n  - Line 3: Added `for i in letters:`\n  - Line 4: Added `if flag:`\n  - Line 5: Added `return i`\n  - Line 6: Added `if i==target:`\n  - Line 7: Added `flag=True`\n  - Line 8: Deleted `return letters[0]`\n  - Line 8: Added `return (letters[0])`\n  - Line 9: Deleted `else:`\n  - Line 9: Deleted `return letters[letters.index(target)+1]`\n\nAttempt 7 | Status: Runtime Error | Tests Passed: 5\nDiff metrics: +14 lines, -7 lines.\nChanges:\n  - Line 2: Deleted `flag=False`\n  - Line 2: Deleted `for i in letters:`\n  - Line 2: Modified `if flag:` -> `def bs(letters,target):`\n  - Line 3: Added `l=0`\n  - Line 4: Added `r=len(letters)-1`\n  - Line 5: Added `while l<=r:`\n  - Line 6: Added `m=(l+r)//2`\n  - Line 7: Added `if letters[m]==target:`\n  - Line 8: Added `return m+1`\n  - Line 9: Added `elif letters[m]<target:`\n  - Line 10: Added `l=m+1`\n  - Line 11: Added `else:`\n  - Line 12: Added `r=m-1`\n  - Line 13: Deleted `return i`\n  - Line 13: Added `return l`\n  - ... and 5 more line changes.\n\nAttempt 8 | Status: Runtime Error | Tests Passed: 8\nDiff metrics: +1 lines, -3 lines.\nChanges:\n  - Line 7: Deleted `if letters[m]==target:`\n  - Line 7: Added `if letters[m]<=target:`\n  - Line 8: Deleted `return m+1`\n  - Line 8: Deleted `elif letters[m]<target:`\n\nAttempt 9 | Status: Wrong Answer | Tests Passed: 8\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 13: Modified `return letters[x]` -> `return letters[0] if target not in letters else letters[x]`\n\nAttempt 11 | Status: Runtime Error | Tests Passed: 8\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 13: Deleted `return letters[0] if target not in letters else letters[x]`\n  - Line 13: Added `return letters[0] if target>letters[-1] not in letters else letters[x]`\n\nAttempt 15 | Status: Accepted | Tests Passed: 11\nDiff metrics: +1 lines, -1 lines.\nChanges:\n  - Line 13: Deleted `return letters[0] if target>letters[-1] not in letters else letters[x]`\n  - Line 13: Added `return letters[0] if target>letters[-1] else letters[x]`",
+          "transitions_count": 10,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Runtime Error",
+              "tests_passing": 0,
+              "source_code": "def nextGreatestLetter(letters, target):\n    if target not in s:\n        return s[0]\n    else:\n        return s[s.index(target)+1]"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 4,
+              "source_code": "def nextGreatestLetter(letters, target):\n    s=sorted(letters)\n    if target not in s:\n        return s[0]\n    else:\n        return s[s.index(target)+1]"
+            },
+            {
+              "attempt_index": 3,
+              "status_name": "Runtime Error",
+              "tests_passing": 0,
+              "source_code": "def nextGreatestLetter(letters, target):\n    if target not in s:\n        return letters[0]\n    else:\n        return letters[letters.index(target)+1]"
+            },
+            {
+              "attempt_index": 4,
+              "status_name": "Wrong Answer",
+              "tests_passing": 5,
+              "source_code": "def nextGreatestLetter(letters, target):\n    if target not in letters:\n        return letters[0]\n    else:\n        return letters[letters.index(target)+1]"
+            },
+            {
+              "attempt_index": 6,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 4,
+              "source_code": "def nextGreatestLetter(letters, target):\n    flag=False\n    for i in letters:\n        if flag:\n            return i\n        if i==target:\n            flag=True\n    return (letters[0])"
+            },
+            {
+              "attempt_index": 7,
+              "status_name": "Runtime Error",
+              "tests_passing": 5,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]==target:\n                return m+1\n            elif letters[m]<target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[x]"
+            },
+            {
+              "attempt_index": 8,
+              "status_name": "Runtime Error",
+              "tests_passing": 8,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[x]"
+            },
+            {
+              "attempt_index": 9,
+              "status_name": "Wrong Answer",
+              "tests_passing": 8,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target not in letters else letters[x]"
+            },
+            {
+              "attempt_index": 11,
+              "status_name": "Runtime Error",
+              "tests_passing": 8,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target>letters[-1] not in letters else letters[x]"
+            },
+            {
+              "attempt_index": 15,
+              "status_name": "Accepted",
+              "tests_passing": 11,
+              "source_code": "def nextGreatestLetter(letters, target):\n    def bs(letters,target):\n        l=0\n        r=len(letters)-1\n        while l<=r:\n            m=(l+r)//2\n            if letters[m]<=target:\n                l=m+1\n            else:\n                r=m-1\n        return l\n    x=bs(letters,target)\n    return letters[0] if target>letters[-1] else letters[x]"
+            }
+          ],
+          "title": "Problem 5792",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 141,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 8,
+          "first_attempt_code": "'''\n    class Node:\n        def __init__(self, data):   # data -> value stored in node\n            self.data = data\n            self.next = None\n'''\ndef reverseLL(head):\n    prev=None\n    while head:\n        temp=head.next\n        head.next=prev\n        prev=head\n        head=temp\n    head=prev\n    return head",
+          "final_attempt_code": "'''\n    class Node:\n        def __init__(self, data):   # data -> value stored in node\n            self.data = data\n            self.next = None\n'''\ndef reverseLL(head):\n    prev=None\n    while head:\n        temp=head.next\n        head.next=prev\n        prev=head\n        head=temp\n    head=prev\n    return head",
+          "best_attempt_code": "'''\n    class Node:\n        def __init__(self, data):   # data -> value stored in node\n            self.data = data\n            self.next = None\n'''\ndef reverseLL(head):\n    prev=None\n    while head:\n        temp=head.next\n        head.next=prev\n        prev=head\n        head=temp\n    head=prev\n    return head",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 8\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 8,
+              "source_code": "'''\n    class Node:\n        def __init__(self, data):   # data -> value stored in node\n            self.data = data\n            self.next = None\n'''\ndef reverseLL(head):\n    prev=None\n    while head:\n        temp=head.next\n        head.next=prev\n        prev=head\n        head=temp\n    head=prev\n    return head"
+            }
+          ],
+          "title": "Problem 141",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25048,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 30,
+          "first_attempt_code": "def InnerSum(root):\n    def s(root):\n        if not root:\n            return 0\n        if not root.left and not root.right:\n            return 0\n        return root.val+s(root.left)+s(root.right)\n    return s(root.left)+s(root.right)",
+          "final_attempt_code": "def InnerSum(root):\n    def s(root):\n        if not root:\n            return 0\n        if not root.left and not root.right:\n            return 0\n        return root.val+s(root.left)+s(root.right)\n    return s(root.left)+s(root.right)",
+          "best_attempt_code": "def InnerSum(root):\n    def s(root):\n        if not root:\n            return 0\n        if not root.left and not root.right:\n            return 0\n        return root.val+s(root.left)+s(root.right)\n    return s(root.left)+s(root.right)",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 30\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 30,
+              "source_code": "def InnerSum(root):\n    def s(root):\n        if not root:\n            return 0\n        if not root.left and not root.right:\n            return 0\n        return root.val+s(root.left)+s(root.right)\n    return s(root.left)+s(root.right)"
+            }
+          ],
+          "title": "Problem 25048",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25044,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 24,
+          "first_attempt_code": "'''\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n'''\n\ndef count_frequency(root, k):\n    if not root:\n        return 0\n    if root.val==k:\n        return 1+count_frequency(root.left,k)+count_frequency(root.right,k)\n    return count_frequency(root.left,k)+count_frequency(root.right,k)",
+          "final_attempt_code": "'''\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n'''\n\ndef count_frequency(root, k):\n    if not root:\n        return 0\n    if root.val==k:\n        return 1+count_frequency(root.left,k)+count_frequency(root.right,k)\n    return count_frequency(root.left,k)+count_frequency(root.right,k)",
+          "best_attempt_code": "'''\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n'''\n\ndef count_frequency(root, k):\n    if not root:\n        return 0\n    if root.val==k:\n        return 1+count_frequency(root.left,k)+count_frequency(root.right,k)\n    return count_frequency(root.left,k)+count_frequency(root.right,k)",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 24\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 24,
+              "source_code": "'''\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n'''\n\ndef count_frequency(root, k):\n    if not root:\n        return 0\n    if root.val==k:\n        return 1+count_frequency(root.left,k)+count_frequency(root.right,k)\n    return count_frequency(root.left,k)+count_frequency(root.right,k)"
+            }
+          ],
+          "title": "Problem 25044",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25086,
+          "total_attempts": 1,
+          "solved": true,
+          "best_attempt_index": 1,
+          "best_status": "Accepted",
+          "best_tests_passed": 10,
+          "first_attempt_code": "'''\nclass Node:\ndef __init__(self, data):\nself.data = data\nself.next = None\n'''\n\ndef swapPairs(head):\n    def f(head,k):\n        def r(start,end):\n            prev=None\n            while start!=end:\n                temp=start.next\n                start.next=prev\n                prev=start\n                start=temp\n            return prev\n        \n        x=Node(-1)\n        x.next=head\n        pre=x\n        while True:\n            kth=pre\n            for i in range(k):\n                kth=kth.next\n                if not kth: \n                    return x.next\n            nxt=kth.next\n            start=pre.next\n            pre.next=r(start,nxt)\n            start.next=nxt\n            pre=start\n    return f(head,2)",
+          "final_attempt_code": "'''\nclass Node:\ndef __init__(self, data):\nself.data = data\nself.next = None\n'''\n\ndef swapPairs(head):\n    def f(head,k):\n        def r(start,end):\n            prev=None\n            while start!=end:\n                temp=start.next\n                start.next=prev\n                prev=start\n                start=temp\n            return prev\n        \n        x=Node(-1)\n        x.next=head\n        pre=x\n        while True:\n            kth=pre\n            for i in range(k):\n                kth=kth.next\n                if not kth: \n                    return x.next\n            nxt=kth.next\n            start=pre.next\n            pre.next=r(start,nxt)\n            start.next=nxt\n            pre=start\n    return f(head,2)",
+          "best_attempt_code": "'''\nclass Node:\ndef __init__(self, data):\nself.data = data\nself.next = None\n'''\n\ndef swapPairs(head):\n    def f(head,k):\n        def r(start,end):\n            prev=None\n            while start!=end:\n                temp=start.next\n                start.next=prev\n                prev=start\n                start=temp\n            return prev\n        \n        x=Node(-1)\n        x.next=head\n        pre=x\n        while True:\n            kth=pre\n            for i in range(k):\n                kth=kth.next\n                if not kth: \n                    return x.next\n            nxt=kth.next\n            start=pre.next\n            pre.next=r(start,nxt)\n            start.next=nxt\n            pre=start\n    return f(head,2)",
+          "timeline_summary": "Attempt 1 | Status: Accepted | Tests Passed: 10\nInitial code written.",
+          "transitions_count": 1,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Accepted",
+              "tests_passing": 10,
+              "source_code": "'''\nclass Node:\ndef __init__(self, data):\nself.data = data\nself.next = None\n'''\n\ndef swapPairs(head):\n    def f(head,k):\n        def r(start,end):\n            prev=None\n            while start!=end:\n                temp=start.next\n                start.next=prev\n                prev=start\n                start=temp\n            return prev\n        \n        x=Node(-1)\n        x.next=head\n        pre=x\n        while True:\n            kth=pre\n            for i in range(k):\n                kth=kth.next\n                if not kth: \n                    return x.next\n            nxt=kth.next\n            start=pre.next\n            pre.next=r(start,nxt)\n            start.next=nxt\n            pre=start\n    return f(head,2)"
+            }
+          ],
+          "title": "Problem 25086",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25135,
+          "total_attempts": 2,
+          "solved": true,
+          "best_attempt_index": 2,
+          "best_status": "Accepted",
+          "best_tests_passed": 22,
+          "first_attempt_code": "def isPowerOfTwo(n):\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False",
+          "final_attempt_code": "def isPowerOfTwo(n):\n    if n==0:\n        return False\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False",
+          "best_attempt_code": "def isPowerOfTwo(n):\n    if n==0:\n        return False\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 21\nInitial code written.\n\nAttempt 2 | Status: Accepted | Tests Passed: 22\nDiff metrics: +2 lines, -0 lines.\nChanges:\n  - Line 2: Added `if n==0:`\n  - Line 3: Added `return False`",
+          "transitions_count": 2,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Wrong Answer",
+              "tests_passing": 21,
+              "source_code": "def isPowerOfTwo(n):\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Accepted",
+              "tests_passing": 22,
+              "source_code": "def isPowerOfTwo(n):\n    if n==0:\n        return False\n    if n==1:\n        return True\n    if n%2==0:\n        return isPowerOfTwo(n//2)\n    return False"
+            }
+          ],
+          "title": "Problem 25135",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 24379,
+          "total_attempts": 9,
+          "solved": true,
+          "best_attempt_index": 9,
+          "best_status": "Accepted",
+          "best_tests_passed": 12,
+          "first_attempt_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if i>=0:\n        stack.append(i)\n    else:\n        if stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):\n            pass\n        elif stack and int(((stack[-1])**2)**0.5)<int(((i)**2)**0.5):\n            stack.pop()\n            stack.append(i)\n        elif stack and int(((stack[-1])**2)**0.5)==int(((i)**2)**0.5):\n            stack.pop()\n        else:\n            stack.append(i)\nprint(*stack)",
+          "final_attempt_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n                break\n            else:\n                ad=False\n                break\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)",
+          "best_attempt_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n                break\n            else:\n                ad=False\n                break\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)",
+          "timeline_summary": "Attempt 1 | Status: Wrong Answer | Tests Passed: 7\nInitial code written.\n\nAttempt 2 | Status: Wrong Answer | Tests Passed: 9\nDiff metrics: +3 lines, -1 lines.\nChanges:\n  - Line 8: Added `if stack and stack[-1]<0 and i<0:`\n  - Line 9: Added `stack.append(i)`\n  - Line 10: Modified `if stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):` -> `elif stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):`\n\nAttempt 3 | Status: Wrong Answer | Tests Passed: 6\nDiff metrics: +13 lines, -12 lines.\nChanges:\n  - Line 5: Modified `if i>=0:` -> `if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):`\n  - Line 8: Modified `if stack and stack[-1]<0 and i<0:` -> `while stack:`\n  - Line 9: Added `if (stack[-1]<0 and i<0) or (stack[-1]>0 and i>0):`\n  - Line 10: Added `break`\n  - Line 11: Added `if abs(stack[-1])>abs(i):`\n  - Line 12: Added `break`\n  - Line 13: Added `elif abs(stack[-1])<abs(i):`\n  - Line 14: Added `stack.pop()`\n  - Line 15: Modified `stack.append(i)` -> `stack.append(i)`\n  - Line 16: Added `elif abs(stack[-1])==abs(i):`\n  - Line 17: Deleted `elif stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):`\n  - Line 17: Deleted `pass`\n  - Line 17: Deleted `elif stack and int(((stack[-1])**2)**0.5)<int(((i)**2)**0.5):`\n  - Line 17: Modified `stack.pop()` -> `stack.pop()`\n  - Line 18: Added `else:`\n  - ... and 5 more line changes.\n\nAttempt 4 | Status: Wrong Answer | Tests Passed: 8\nDiff metrics: +5 lines, -4 lines.\nChanges:\n  - Line 9: Modified `if (stack[-1]<0 and i<0) or (stack[-1]>0 and i>0):` -> `if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):`\n  - Line 11: Modified `if abs(stack[-1])>abs(i):` -> `elif abs(stack[-1])>abs(i):`\n  - Line 13: Modified `elif abs(stack[-1])<abs(i):` -> `elif stack and abs(stack[-1])<abs(i):`\n  - Line 14: Added `while stack and abs(stack[-1])<abs(i):`\n  - Line 15: Modified `stack.pop()` -> `stack.pop()`\n\nAttempt 5 | Status: Wrong Answer | Tests Passed: 7\nDiff metrics: +52 lines, -11 lines.\nChanges:\n  - Line 8: Added `ad=True`\n  - Line 9: Added `while stack and (abs(stack[-1])<=abs(i) and ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0))):`\n  - Line 10: Deleted `while stack:`\n  - Line 10: Deleted `if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):`\n  - Line 10: Deleted `break`\n  - Line 10: Deleted `elif abs(stack[-1])>abs(i):`\n  - Line 10: Added `if abs(stack[-1])<abs(i):`\n  - Line 11: Deleted `break`\n  - Line 11: Deleted `elif stack and abs(stack[-1])<abs(i):`\n  - Line 11: Deleted `while stack and abs(stack[-1])<abs(i):`\n  - Line 11: Deleted `stack.pop()`\n  - Line 11: Added `stack.pop()`\n  - Line 12: Deleted `stack.append(i)`\n  - Line 14: Modified `else:` -> `ad=False`\n  - Line 15: Added `if ad:`\n  - ... and 46 more line changes.\n\nAttempt 6 | Status: Time Limit Exceeded | Tests Passed: 7\nDiff metrics: +3 lines, -1 lines.\nChanges:\n  - Line 9: Deleted `while stack and (abs(stack[-1])<=abs(i) and ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0))):`\n  - Line 9: Added `while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):`\n  - Line 14: Added `ad=False`\n  - Line 15: Added `else:`\n\nAttempt 7 | Status: Wrong Answer | Tests Passed: 9\nDiff metrics: +1 lines, -0 lines.\nChanges:\n  - Line 17: Added `break`\n\nAttempt 9 | Status: Accepted | Tests Passed: 12\nDiff metrics: +1 lines, -0 lines.\nChanges:\n  - Line 15: Added `break`",
+          "transitions_count": 8,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Wrong Answer",
+              "tests_passing": 7,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if i>=0:\n        stack.append(i)\n    else:\n        if stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):\n            pass\n        elif stack and int(((stack[-1])**2)**0.5)<int(((i)**2)**0.5):\n            stack.pop()\n            stack.append(i)\n        elif stack and int(((stack[-1])**2)**0.5)==int(((i)**2)**0.5):\n            stack.pop()\n        else:\n            stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 2,
+              "status_name": "Wrong Answer",
+              "tests_passing": 9,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if i>=0:\n        stack.append(i)\n    else:\n        if stack and stack[-1]<0 and i<0:\n            stack.append(i)\n        elif stack and int(((stack[-1])**2)**0.5)>int(((i)**2)**0.5):\n            pass\n        elif stack and int(((stack[-1])**2)**0.5)<int(((i)**2)**0.5):\n            stack.pop()\n            stack.append(i)\n        elif stack and int(((stack[-1])**2)**0.5)==int(((i)**2)**0.5):\n            stack.pop()\n        else:\n            stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 3,
+              "status_name": "Wrong Answer",
+              "tests_passing": 6,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        while stack:\n            if (stack[-1]<0 and i<0) or (stack[-1]>0 and i>0):\n                break\n            if abs(stack[-1])>abs(i):\n                break\n            elif abs(stack[-1])<abs(i):\n                stack.pop()\n                stack.append(i)\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n            else:\n                stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 4,
+              "status_name": "Wrong Answer",
+              "tests_passing": 8,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        while stack:\n            if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n                break\n            elif abs(stack[-1])>abs(i):\n                break\n            elif stack and abs(stack[-1])<abs(i):\n                while stack and abs(stack[-1])<abs(i):\n                    stack.pop()\n                stack.append(i)\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n            else:\n                stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 5,
+              "status_name": "Wrong Answer",
+              "tests_passing": 7,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and (abs(stack[-1])<=abs(i) and ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0))):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 6,
+              "status_name": "Time Limit Exceeded",
+              "tests_passing": 7,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n            else:\n                ad=False\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 7,
+              "status_name": "Wrong Answer",
+              "tests_passing": 9,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n            else:\n                ad=False\n                break\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)"
+            },
+            {
+              "attempt_index": 9,
+              "status_name": "Accepted",
+              "tests_passing": 12,
+              "source_code": "a=int(input())\nl=list(map(int,input().split()))\nstack=[]\nfor i in l:\n    if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n        stack.append(i)\n    else:\n        ad=True\n        while stack and  ((i>0 and stack[-1]<0) or (i<0 and stack[-1]>0)):\n            if abs(stack[-1])<abs(i):\n                stack.pop()\n            elif abs(stack[-1])==abs(i):\n                stack.pop()\n                ad=False\n                break\n            else:\n                ad=False\n                break\n        if ad:\n            stack.append(i)\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n    # if not stack or (stack[-1]>0 and i>0) or (stack[-1]<0 and i<0):\n    #     stack.append(i)\n    # else:\n    #     while stack:\n    #         if (stack[-1]<0 and i<0) or (stack[-1]>=0 and i>=0):\n    #             stack.append(i)\n    #             break\n    #         elif abs(stack[-1])>abs(i):\n    #             break\n    #         elif abs(stack[-1])<abs(i):\n    #             while stack and abs(stack[-1])<abs(i):\n    #                 stack.pop()\n    #             if stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]>0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]<0)):\n    #                 pass\n    #             elif stack and (abs(stack[-1])==abs(i) and (i>0 and stack[-1]<0)) or (abs(stack[-1])==abs(i) and (i<0 and stack[-1]>0)):\n    #                 stack.pop()\n    #             else:\n    #                 stack.append(i)\n    #         elif abs(stack[-1])==abs(i):\n    #             stack.pop()\n    #         else:\n    #             stack.append(i)\nprint(*stack)"
+            }
+          ],
+          "title": "Problem 24379",
+          "description": "No description provided."
+        },
+        {
+          "question_id": 25040,
+          "total_attempts": 3,
+          "solved": true,
+          "best_attempt_index": 3,
+          "best_status": "Accepted",
+          "best_tests_passed": 15,
+          "first_attempt_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if t[i]==j:\n            i+=1\n    return i==len(t)",
+          "final_attempt_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if i==len(t):\n            return True\n        if t[i]==j:\n            i+=1\n    return i==len(t)",
+          "best_attempt_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if i==len(t):\n            return True\n        if t[i]==j:\n            i+=1\n    return i==len(t)",
+          "timeline_summary": "Attempt 1 | Status: Runtime Error | Tests Passed: 6\nInitial code written.\n\nAttempt 3 | Status: Accepted | Tests Passed: 15\nDiff metrics: +2 lines, -0 lines.\nChanges:\n  - Line 4: Added `if i==len(t):`\n  - Line 5: Added `return True`",
+          "transitions_count": 2,
+          "attempts": [
+            {
+              "attempt_index": 1,
+              "status_name": "Runtime Error",
+              "tests_passing": 6,
+              "source_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if t[i]==j:\n            i+=1\n    return i==len(t)"
+            },
+            {
+              "attempt_index": 3,
+              "status_name": "Accepted",
+              "tests_passing": 15,
+              "source_code": "def matchingNumber(s, t):\n    i=0\n    for j in s:\n        if i==len(t):\n            return True\n        if t[i]==j:\n            i+=1\n    return i==len(t)"
+            }
+          ],
+          "title": "Problem 25040",
+          "description": "No description provided."
+        }
+      ],
+      "assignment_id": 85496,
+      "ai_critique_completed": true
     }
   }
 }

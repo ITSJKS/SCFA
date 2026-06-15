@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   BarChart2, Code, Users, Sun, Moon, TrendingUp, CloudUpload, Sparkles, 
   Settings, CheckCircle, AlertTriangle, Play, HelpCircle, X, Trash2, LogOut, Key,
-  Database, Download, Upload
+  Database, Download, Upload, Mail
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ContestDashboard from './components/ContestDashboard';
@@ -11,6 +11,7 @@ import ProgressTracker from './components/ProgressTracker';
 import CodeCompareModal from './components/CodeCompareModal';
 import ProgressWidget from './components/ProgressWidget';
 import ProblemExplorer from './components/ProblemExplorer';
+import EmailFeedbackHub from './components/EmailFeedbackHub';
 
 export default function App() {
   // Navigation & Dropdown State
@@ -1349,6 +1350,17 @@ export default function App() {
             <TrendingUp className="w-4 h-4" />
             <span>Progress Tracker</span>
           </button>
+          <button
+            onClick={() => setActiveTab('email')}
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-150 cursor-pointer flex-shrink-0 ${
+              activeTab === 'email'
+                ? 'border-accentCyan text-accentCyan'
+                : 'border-transparent text-textSecondary hover:text-textPrimary'
+            }`}
+          >
+            <Mail className="w-4 h-4" />
+            <span>Email Feedback</span>
+          </button>
         </div>
 
         {/* User Profile & Key config consolidated group (Desktop only) */}
@@ -1445,6 +1457,15 @@ export default function App() {
                   setActiveStudentEmail(email);
                   setActiveTab('students');
                 }}
+              />
+            )}
+
+            {activeTab === 'email' && (
+              <EmailFeedbackHub 
+                activeContestKey={activeContestKey}
+                appData={appData}
+                authenticatedFetch={authenticatedFetch}
+                showToast={showToast}
               />
             )}
           </>
