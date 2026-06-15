@@ -112,7 +112,20 @@ def parse_submissions_file(filepath, problems_metadata=None):
         ai_suggestion = item.get("ai_suggestion", "")
         
         # Determine language name fallback
-        lang_name = "Python" if language_id == 71 else ("C++" if language_id == 54 else f"Lang {language_id}")
+        lang_mapping = {
+            71: "Python",
+            70: "Python",
+            54: "C++",
+            50: "C",
+            62: "Java",
+            63: "JavaScript",
+            74: "TypeScript",
+            73: "Rust",
+            60: "Go",
+            51: "C#",
+            82: "SQL"
+        }
+        lang_name = lang_mapping.get(language_id, f"Lang {language_id}")
         
         sub = {
             "submission_id": sub_id,

@@ -1,0 +1,9 @@
+{
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 587,
+  "smtp_username": "your-email@gmail.com",
+  "smtp_password": "your-app-password",
+  "smtp_use_tls": true,
+  "sender_email": "your-email@gmail.com",
+  "sender_name": "Coding Contest Coach"
+}

@@ -13,7 +13,8 @@ export default function StudentPortal({
   onRunSingleAI,
   isSingleAnalyzing,
   onViewCode,
-  onViewAttemptCode
+  onViewAttemptCode,
+  isLoading = false
 }) {
   const [openAccordions, setOpenAccordions] = useState({});
   const [notesText, setNotesText] = useState('');
@@ -31,6 +32,16 @@ export default function StudentPortal({
     await onSaveFeedback(email, notesText);
     setIsSavingNotes(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[55vh] text-center p-8 glass-panel rounded-xl border border-panelBorder">
+        <div className="w-10 h-10 border-2 border-accentCyan border-t-transparent rounded-full animate-spin mb-4" />
+        <h3 className="text-base font-bold text-textPrimary">Loading Student Data…</h3>
+        <p className="text-xs text-textSecondary mt-1">{email}</p>
+      </div>
+    );
+  }
 
   if (!student) {
     return (
@@ -85,15 +96,15 @@ export default function StudentPortal({
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-5 animate-in fade-in duration-200">
       {/* Profile Header */}
-      <div className="glass-panel p-6 rounded-xl border border-panelBorder flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-col gap-1.5">
-          <h2 className="text-2xl md:text-3xl font-black text-textPrimary tracking-tight break-all">{email}</h2>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-textSecondary">
-            <span className="font-bold text-textMuted">User ID: {student.user_id}</span>
+      <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1 min-w-0">
+          <h2 className="text-base font-bold text-textPrimary tracking-tight truncate max-w-full" title={email}>{email}</h2>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-textSecondary">
+            <span className="font-semibold text-textMuted">User ID: {student.user_id}</span>
             <span className="text-panelBorder font-light">•</span>
-            <span className="font-semibold">Submissions: {student.total_submissions}</span>
+            <span className="font-medium">Submissions: {student.total_submissions}</span>
           </div>
         </div>
 
@@ -102,35 +113,35 @@ export default function StudentPortal({
             <button
               onClick={() => onRunSingleAI(email)}
               disabled={isSingleAnalyzing}
-              className={`flex items-center gap-2 px-5 py-3 rounded-lg border text-sm font-extrabold transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all duration-150 cursor-pointer ${
                 isSingleAnalyzing
                   ? 'bg-accentCyan/5 border-accentCyan/20 text-accentCyan cursor-wait animate-pulse'
-                  : 'bg-accentCyan/10 hover:bg-accentCyan border-accentCyan/25 hover:border-accentCyan hover:text-darkBg text-accentCyan hover:shadow-[0_0_12px_rgba(0,242,254,0.2)]'
+                  : 'bg-accentCyan/10 hover:bg-accentCyan border-accentCyan/20 hover:border-accentCyan hover:text-darkBg text-accentCyan'
               }`}
               title="Re-run AI Critique for this student using GPT-4o-mini"
             >
-              <BrainCircuit className={`w-5 h-5 ${isSingleAnalyzing ? 'animate-spin' : ''}`} />
+              <BrainCircuit className={`w-4 h-4 ${isSingleAnalyzing ? 'animate-spin' : ''}`} />
               <span>{isSingleAnalyzing ? 'Analyzing...' : 'Run AI Feedback'}</span>
             </button>
           )}
 
-          <div className="bg-bgSurfaceInput border border-panelBorder/80 px-5 py-3 rounded-lg text-sm font-extrabold text-textPrimary uppercase tracking-wider">
+          <div className="bg-bgSurfaceInput border border-panelBorder/80 px-3 py-1.5 rounded-lg text-xs font-semibold text-textPrimary uppercase tracking-wider">
             Contest Score: {student.solved_count} / {student.attempted_count} Solved
           </div>
         </div>
       </div>
 
       {/* AI Diagnostic Critiques Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Strengths */}
-        <div className="glass-panel p-6 rounded-xl border border-panelBorder flex flex-col gap-4.5">
-          <h3 className="text-lg font-extrabold text-accentGreen flex items-center gap-2.5 border-b border-panelBorder/30 pb-2.5 uppercase tracking-wider">
-            <CheckCircle2 className="w-5.5 h-5.5" /> Strengths
+        <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col gap-3">
+          <h3 className="text-xs font-bold text-accentGreen flex items-center gap-2 border-b border-panelBorder/20 pb-2.5 uppercase tracking-wider">
+            <CheckCircle2 className="w-4.5 h-4.5" /> Strengths
           </h3>
-          <ul className="flex flex-col gap-3.5 text-[15px] text-textSecondary leading-relaxed">
+          <ul className="flex flex-col gap-2.5 text-xs text-textSecondary leading-relaxed">
             {student.feedback?.strengths?.length > 0 ? (
               student.feedback.strengths.map((str, idx) => (
-                <li key={idx} className="flex gap-2.5 items-start">
+                <li key={idx} className="flex gap-2 items-start">
                   <span className="text-accentGreen font-bold mt-0.5">•</span>
                   <span>{str}</span>
                 </li>
@@ -142,14 +153,14 @@ export default function StudentPortal({
         </div>
 
         {/* Weaknesses */}
-        <div className="glass-panel p-6 rounded-xl border border-panelBorder flex flex-col gap-4.5">
-          <h3 className="text-lg font-extrabold text-accentOrange flex items-center gap-2.5 border-b border-panelBorder/30 pb-2.5 uppercase tracking-wider">
-            <AlertTriangle className="w-5.5 h-5.5" /> Weaknesses
+        <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col gap-3">
+          <h3 className="text-xs font-bold text-accentOrange flex items-center gap-2 border-b border-panelBorder/20 pb-2.5 uppercase tracking-wider">
+            <AlertTriangle className="w-4.5 h-4.5" /> Weaknesses
           </h3>
-          <ul className="flex flex-col gap-3.5 text-[15px] text-textSecondary leading-relaxed">
+          <ul className="flex flex-col gap-2.5 text-xs text-textSecondary leading-relaxed">
             {student.feedback?.weaknesses?.length > 0 ? (
               student.feedback.weaknesses.map((wk, idx) => (
-                <li key={idx} className="flex gap-2.5 items-start">
+                <li key={idx} className="flex gap-2 items-start">
                   <span className="text-accentOrange font-bold mt-0.5">•</span>
                   <span>{wk}</span>
                 </li>
@@ -161,14 +172,14 @@ export default function StudentPortal({
         </div>
 
         {/* AI Recommendations */}
-        <div className="glass-panel p-6 rounded-xl border border-panelBorder flex flex-col gap-4.5">
-          <h3 className="text-lg font-extrabold text-accentPurple flex items-center gap-2.5 border-b border-panelBorder/30 pb-2.5 uppercase tracking-wider">
-            <Lightbulb className="w-5.5 h-5.5" /> AI Recommendations
+        <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col gap-3">
+          <h3 className="text-xs font-bold text-accentPurple flex items-center gap-2 border-b border-panelBorder/20 pb-2.5 uppercase tracking-wider">
+            <Lightbulb className="w-4.5 h-4.5" /> AI Recommendations
           </h3>
-          <ul className="flex flex-col gap-3.5 text-[15px] text-textSecondary leading-relaxed">
+          <ul className="flex flex-col gap-2.5 text-xs text-textSecondary leading-relaxed">
             {student.feedback?.recommendations?.length > 0 ? (
               student.feedback.recommendations.map((rc, idx) => (
-                <li key={idx} className="flex gap-2.5 items-start">
+                <li key={idx} className="flex gap-2 items-start">
                   <span className="text-accentPurple font-bold mt-0.5">•</span>
                   <span>{rc}</span>
                 </li>
@@ -181,28 +192,28 @@ export default function StudentPortal({
       </div>
 
       {/* Faculty Evaluator Notes */}
-      <div className="glass-panel p-6 rounded-xl border border-panelBorder flex flex-col gap-4">
-        <h3 className="text-lg font-extrabold text-accentCyan flex items-center gap-2.5 border-b border-panelBorder/30 pb-2.5 uppercase tracking-wider">
-          <BrainCircuit className="w-5.5 h-5.5 animate-pulse" /> Faculty Evaluator Notes
+      <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col gap-3.5">
+        <h3 className="text-xs font-bold text-accentCyan flex items-center gap-2 border-b border-panelBorder/20 pb-2 uppercase tracking-wider">
+          <BrainCircuit className="w-4.5 h-4.5" /> Faculty Evaluator Notes
         </h3>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           <textarea
             value={notesText}
             onChange={(e) => setNotesText(e.target.value)}
             placeholder="Type custom feedback, performance overrides, or private guidance notes for this student here..."
-            className="w-full h-28 bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg p-3.5 text-sm text-textPrimary placeholder:text-textMuted outline-none transition-all resize-none font-semibold"
+            className="w-full h-20 bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg p-3 text-xs text-textPrimary placeholder:text-textMuted outline-none transition-all resize-none font-medium"
           />
           <div className="flex justify-end items-center gap-3">
             {isSavingNotes && (
-              <span className="text-xs text-textMuted font-semibold animate-pulse">Saving changes...</span>
+              <span className="text-[10px] text-textMuted font-medium animate-pulse">Saving notes...</span>
             )}
             <button
               onClick={handleSaveNotes}
               disabled={isSavingNotes || notesText === (student.custom_feedback || '')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border text-sm font-extrabold transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all duration-150 cursor-pointer ${
                 notesText === (student.custom_feedback || '')
                   ? 'bg-panelBorder/10 border-panelBorder/20 text-textMuted cursor-not-allowed'
-                  : 'bg-accentCyan/10 hover:bg-accentCyan border-accentCyan/25 hover:border-accentCyan hover:text-darkBg text-accentCyan hover:shadow-[0_0_12px_rgba(0,242,254,0.2)]'
+                  : 'bg-accentCyan/10 hover:bg-accentCyan border-accentCyan/20 hover:border-accentCyan hover:text-darkBg text-accentCyan'
               }`}
             >
               <span>Save Notes</span>
@@ -212,13 +223,13 @@ export default function StudentPortal({
       </div>
 
       {/* Accordion List for Attempts details */}
-      <div className="flex flex-col gap-4.5">
-        <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider border-b border-panelBorder/30 pb-2.5">
+      <div className="flex flex-col gap-4">
+        <h3 className="text-xs font-bold text-textPrimary uppercase tracking-wider border-b border-panelBorder/20 pb-2">
           Question Analysis & Code History
         </h3>
 
         {student.attempts_details?.length === 0 ? (
-          <p className="text-center text-textMuted text-sm py-6">No submissions made during this contest.</p>
+          <p className="text-center text-textMuted text-xs py-6">No submissions made during this contest.</p>
         ) : (
           student.attempts_details.map((q) => {
             const qid = String(q.question_id);
@@ -239,20 +250,20 @@ export default function StudentPortal({
             return (
               <div 
                 key={qid} 
-                className={`glass-panel border rounded-xl overflow-hidden transition-all duration-200 ${
-                  isOpen ? 'border-panelBorder/90' : 'border-panelBorder'
+                className={`glass-panel border rounded-xl overflow-hidden transition-all duration-150 ${
+                  isOpen ? 'border-panelBorder/60 bg-white/[0.01]' : 'border-panelBorder'
                 }`}
               >
                 {/* Accordion Header */}
                 <div 
                   onClick={() => toggleAccordion(qid)}
-                  className="px-6 py-4.5 flex items-center justify-between gap-4 cursor-pointer hover:bg-bgSurfaceHover transition-colors select-none"
+                  className="px-4.5 py-3 flex items-center justify-between gap-4 cursor-pointer hover:bg-bgSurfaceHover transition-colors select-none"
                 >
-                  <div className="flex items-center gap-3.5">
-                    <h4 className="text-lg font-extrabold text-textPrimary">
+                  <div className="flex items-center gap-2.5">
+                    <h4 className="text-xs font-bold text-textPrimary">
                       #{qid} - {q.title}
                     </h4>
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                       isSolved 
                         ? 'text-accentGreen bg-accentGreen/5 border-accentGreen/10' 
                         : 'text-accentRose bg-accentRose/5 border-accentRose/10'
@@ -261,39 +272,39 @@ export default function StudentPortal({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4 text-[15px] font-bold text-textSecondary">
+                  <div className="flex items-center gap-3 text-xs font-semibold text-textSecondary">
                     <span>Attempts: {q.total_attempts}</span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${ratingColor}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ratingColor}`}>
                       {qFeedback.score_rating}
                     </span>
-                    {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </div>
                 </div>
 
                 {/* Accordion Body */}
                 {isOpen && (
-                  <div className="px-6 pb-6 pt-1.5 border-t border-panelBorder/40 bg-darkBg/30 flex flex-col gap-6">
+                  <div className="px-4.5 pb-4.5 pt-1 border-t border-panelBorder/30 bg-darkBg/10 flex flex-col gap-4">
                     {/* Problem AI Critique Card */}
-                    <div className="bg-accentCyan/[0.01] border-l-4 border-accentCyan p-5 rounded-r-lg flex flex-col gap-1.5 shadow-inner">
-                      <span className="text-[11px] font-bold text-textMuted uppercase tracking-wider">AI Code Critique</span>
-                      <p className="text-[16px] font-semibold text-textPrimary leading-relaxed">{qFeedback.summary}</p>
-                      <p className="text-[15px] text-textSecondary leading-relaxed italic mt-1.5">{qFeedback.critique}</p>
+                    <div className="bg-accentCyan/[0.01] border-l-2 border-accentCyan p-4.5 rounded-r-lg flex flex-col gap-1 shadow-inner">
+                      <span className="text-[9px] font-bold text-textMuted uppercase tracking-wider">AI Code Critique</span>
+                      <p className="text-xs font-semibold text-textPrimary leading-normal">{qFeedback.summary}</p>
+                      <p className="text-[11px] text-textSecondary leading-normal italic mt-1">{qFeedback.critique}</p>
                     </div>
 
                     {/* View Code Actions */}
-                    <div className="flex justify-between items-center border-b border-panelBorder/30 pb-3">
-                      <h5 className="text-xs font-bold text-textPrimary uppercase tracking-wider">Code Progression Timeline</h5>
+                    <div className="flex justify-between items-center border-b border-panelBorder/20 pb-2">
+                      <h5 className="text-[10px] font-bold text-textPrimary uppercase tracking-wider">Code Progression Timeline</h5>
                       <button 
                         onClick={() => onViewCode(email, qid)}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-accentCyan/10 hover:bg-accentCyan border border-accentCyan/25 hover:border-accentCyan hover:text-darkBg text-accentCyan text-sm font-bold rounded-lg transition-all cursor-pointer"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-accentCyan/10 hover:bg-accentCyan border border-accentCyan/20 hover:border-accentCyan hover:text-darkBg text-accentCyan text-xs font-semibold rounded-lg transition-all cursor-pointer h-7"
                       >
-                        <Code className="w-4.5 h-4.5" />
-                        <span>View & Compare Code</span>
+                        <Code className="w-3.5 h-3.5" />
+                        <span>Compare Code</span>
                       </button>
                     </div>
 
                     {/* Event Timeline Cards */}
-                    <div className="flex flex-col gap-4 pl-4 border-l border-panelBorder/50">
+                    <div className="flex flex-col gap-3.5 pl-3.5 border-l border-panelBorder/40">
                       {q.timeline_summary.split('\n\n').map((lineBlock, idx) => {
                         if (!lineBlock.trim()) return null;
                         const lines = lineBlock.split('\n');
@@ -307,27 +318,27 @@ export default function StudentPortal({
                         return (
                           <div 
                             key={idx} 
-                            className={`p-4.5 border rounded-xl flex flex-col gap-3 transition-colors relative ${styles.cardBg}`}
+                            className={`p-3.5 border rounded-lg flex flex-col gap-2.5 transition-colors relative ${styles.cardBg}`}
                           >
                             {/* Dot indicator on Timeline Axis */}
-                            <span className="absolute -left-[22.5px] top-5.5 w-2.5 h-2.5 rounded-full bg-panelBorder border border-darkBg" />
+                            <span className="absolute -left-[20px] top-4.5 w-2 h-2 rounded-full bg-panelBorder border border-darkBg" />
 
-                            <div className="flex items-center justify-between gap-4">
-                              <div className={`flex items-center gap-1.5 text-[15px] font-bold ${styles.titleColor}`}>
-                                <EventIcon className="w-4.5 h-4.5" />
+                            <div className="flex items-center justify-between gap-3">
+                              <div className={`flex items-center gap-1 text-xs font-semibold ${styles.titleColor}`}>
+                                <EventIcon className="w-3.5 h-3.5" />
                                 <span>{header.split(' | ')[0]}: {styles.statusTitle}</span>
                               </div>
-                              <div className="flex items-center gap-3.5">
-                                <span className="text-xs text-textMuted font-bold">
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-[10px] text-textMuted font-semibold">
                                   {header.split(' | ')[2] || ''}
                                 </span>
                                 {q.attempts?.[idx] && (
                                   <button
                                     onClick={() => onViewAttemptCode(email, qid, idx)}
-                                    className="flex items-center gap-1 px-3.5 py-1.5 bg-bgSurfaceInput border border-panelBorder hover:border-textSecondary text-textSecondary hover:text-textPrimary text-xs font-bold rounded transition-colors cursor-pointer"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-bgSurfaceInput border border-panelBorder hover:border-textSecondary text-textSecondary hover:text-textPrimary text-[10px] font-semibold rounded transition-colors cursor-pointer"
                                     title="View this submission code"
                                   >
-                                    <Code className="w-4 h-4" />
+                                    <Code className="w-3 h-3" />
                                     <span>View Code</span>
                                   </button>
                                 )}
@@ -335,16 +346,16 @@ export default function StudentPortal({
                             </div>
 
                             {/* Attempt 1 Code or diff description */}
-                            <div className="text-[15px]">
+                            <div className="text-xs">
                               {isAttempt1 && q.first_attempt_code ? (
-                                <div className="border border-panelBorder rounded-lg overflow-hidden mt-1 shadow-md">
-                                  <div className="bg-bgSurfaceInput px-3.5 py-1.5 text-xs text-textMuted border-b border-panelBorder font-bold">Initial Source Code</div>
-                                  <pre className="p-3.5 bg-[#070a13] max-h-56 overflow-y-auto leading-relaxed text-textSecondary font-mono text-sm border-t border-panelBorder/30">
+                                <div className="border border-panelBorder rounded-lg overflow-hidden mt-0.5 shadow-sm">
+                                  <div className="bg-bgSurfaceInput px-2.5 py-1 text-[10px] text-textMuted border-b border-panelBorder font-bold">Initial Source Code</div>
+                                  <pre className="p-2.5 bg-[#070a13] max-h-48 overflow-y-auto leading-relaxed text-textSecondary font-mono text-[11px] border-t border-panelBorder/20">
                                     <code>{q.first_attempt_code}</code>
                                   </pre>
                                 </div>
                               ) : (
-                                <p className="text-textSecondary leading-relaxed whitespace-pre-wrap font-sans italic pl-1">{diffDesc}</p>
+                                <p className="text-textSecondary leading-normal whitespace-pre-wrap font-sans italic pl-0.5 text-[11px]">{diffDesc}</p>
                               )}
                             </div>
                           </div>

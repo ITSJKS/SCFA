@@ -37,29 +37,29 @@ export default function Sidebar({
     .sort((a, b) => a[0].localeCompare(b[0]));
 
   return (
-    <div className="w-85 flex flex-col h-full glass-panel border border-panelBorder rounded-xl overflow-hidden flex-shrink-0">
+    <div className="w-full lg:w-80 flex flex-col h-[280px] lg:h-full glass-panel border border-panelBorder rounded-xl overflow-hidden flex-shrink-0">
       {/* Sidebar Header / Filters */}
-      <div className="p-4 border-b border-panelBorder bg-headerBg/40 flex flex-col gap-3.5">
+      <div className="p-3 border-b border-panelBorder bg-headerBg/20 flex flex-col gap-2.5">
         {/* Search */}
         <div className="relative">
-          <Search className="w-4.5 h-4.5 text-textMuted absolute left-3 top-3.5" />
+          <Search className="w-4 h-4 text-textMuted absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Search email or ID..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full pl-10 pr-4 py-2.5 text-[15px] bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary placeholder:text-textMuted outline-none transition-all duration-150 focus:shadow-[0_0_8px_rgba(0,242,254,0.15)]"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary placeholder:text-textMuted outline-none transition-all duration-150"
           />
         </div>
 
         {/* Filter Dropdown */}
-        <div className="flex items-center gap-2.5 px-0.5">
-          <Filter className="w-4 h-4 text-textSecondary" />
-          <span className="text-sm text-textSecondary font-bold uppercase tracking-wider">Filter:</span>
+        <div className="flex items-center gap-2 px-0.5">
+          <Filter className="w-3.5 h-3.5 text-textSecondary" />
+          <span className="text-xs text-textSecondary font-bold uppercase tracking-wider">Filter:</span>
           <select
             value={filterType}
             onChange={handleFilterChange}
-            className="flex-1 bg-bgSurfaceInput border border-panelBorder text-sm text-textPrimary py-1.5 px-2.5 rounded-md outline-none cursor-pointer hover:border-panelBorder/80 transition-colors"
+            className="flex-1 bg-bgSurfaceInput border border-panelBorder text-xs text-textPrimary py-1 px-2 rounded-md outline-none cursor-pointer hover:border-panelBorder/80 transition-colors"
           >
             <option value="all" className="bg-panelBgSolid text-textPrimary">All Students</option>
             <option value="solved-all" className="bg-panelBgSolid text-textPrimary">Solved All</option>
@@ -70,10 +70,10 @@ export default function Sidebar({
       </div>
 
       {/* Student List */}
-      <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 select-none">
+      <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-1.5 select-none">
         {studentList.length === 0 ? (
-          <div className="text-center text-sm text-textMuted py-10">
-            No students found matching filters.
+          <div className="text-center text-xs text-textMuted py-8">
+            No students found.
           </div>
         ) : (
           studentList.map(([email, s]) => {
@@ -86,33 +86,34 @@ export default function Sidebar({
               <div
                 key={email}
                 onClick={() => onSelectStudent(email)}
-                className={`group flex flex-col gap-1.5 p-3.5 rounded-xl border cursor-pointer transition-all duration-150 ${
+                title={email}
+                className={`group flex flex-col gap-1 p-2.5 rounded-lg border cursor-pointer transition-all duration-150 ${
                   isSelected
-                    ? 'bg-accentCyan/10 border-accentCyan/40 shadow-[0_0_12px_rgba(0,242,254,0.08)]'
-                    : 'bg-transparent border-transparent hover:bg-bgSurfaceHover hover:border-panelBorder/30'
+                    ? 'bg-accentCyan/10 border-accentCyan/30 shadow-sm'
+                    : 'bg-transparent border-transparent hover:bg-bgSurfaceHover hover:border-panelBorder/20'
                 }`}
               >
                 {/* Email and Badge */}
-                <div className="flex items-center justify-between gap-3">
-                  <span className={`text-[16px] font-bold truncate leading-tight ${isSelected ? 'text-accentCyan' : 'text-textPrimary group-hover:text-textPrimary'}`}>
+                <div className="flex items-center justify-between gap-2.5">
+                  <span className={`text-xs font-semibold truncate leading-normal ${isSelected ? 'text-accentCyan' : 'text-textPrimary'}`}>
                     {email}
                   </span>
                   {s.ai_critique_completed && (
                     <span 
-                      className="flex items-center gap-0.5 bg-gradient-to-r from-accentPurple to-accentCyan text-[9px] font-extrabold text-white px-2 py-0.5 rounded shadow-sm flex-shrink-0"
+                      className="flex items-center gap-0.5 bg-gradient-to-r from-accentPurple to-accentCyan text-[9px] font-bold text-white px-1.5 py-0.5 rounded flex-shrink-0"
                       title="AI Critique Feedback Active"
                     >
-                      <Sparkles className="w-2.5 h-2.5" />
+                      <Sparkles className="w-2 h-2" />
                       AI
                     </span>
                   )}
                 </div>
 
                 {/* Sub Metadata */}
-                <div className="flex items-center justify-between text-sm text-textSecondary">
-                  <span className="font-semibold text-textMuted">ID: {s.user_id}</span>
+                <div className="flex items-center justify-between text-[11px] text-textSecondary">
+                  <span className="text-textMuted font-medium">ID: {s.user_id}</span>
                   <span className="font-medium">
-                    Solved: <span className={`font-bold ${rateColor}`}>{solvedRatio}</span> ({s.total_submissions} subs)
+                    Solved: <span className={`font-semibold ${rateColor}`}>{solvedRatio}</span> ({s.total_submissions} subs)
                   </span>
                 </div>
               </div>

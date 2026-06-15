@@ -47,28 +47,28 @@ export default function CodeCompareModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-headerBg px-6 py-4 flex justify-between items-center border-b border-panelBorder">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-accentCyan/10 rounded-lg text-accentCyan">
-              <Code className="w-5.5 h-5.5" />
+        <div className="bg-headerBg px-4.5 py-3 flex justify-between items-center border-b border-panelBorder">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-accentCyan/10 rounded-lg text-accentCyan flex items-center justify-center">
+              <Code className="w-4 h-4" />
             </div>
-            <h2 className="text-xl font-extrabold text-textPrimary truncate max-w-[650px]" title={title}>
+            <h2 className="text-sm font-bold text-textPrimary truncate max-w-[650px]" title={title}>
               {title}
             </h2>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 hover:bg-bgSurfaceHover text-textSecondary hover:text-textPrimary rounded-lg transition-colors cursor-pointer"
+            className="p-1 hover:bg-bgSurfaceHover text-textSecondary hover:text-textPrimary rounded-lg transition-colors cursor-pointer"
           >
-            <X className="w-5.5 h-5.5" />
+            <X className="w-4.5 h-4.5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-headerBg border-b border-panelBorder px-6 gap-2 pt-2">
+        <div className="flex bg-headerBg border-b border-panelBorder px-4.5 gap-1.5 pt-1">
           <button
             onClick={() => setActiveTab('best')}
-            className={`px-4.5 py-2.5 text-[15px] font-bold border-b-2 transition-all duration-150 cursor-pointer ${
+            className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-150 cursor-pointer ${
               activeTab === 'best'
                 ? 'border-accentCyan text-accentCyan'
                 : 'border-transparent text-textSecondary hover:text-textPrimary'
@@ -78,7 +78,7 @@ export default function CodeCompareModal({
           </button>
           <button
             onClick={() => setActiveTab('first')}
-            className={`px-4.5 py-2.5 text-[15px] font-bold border-b-2 transition-all duration-150 cursor-pointer ${
+            className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-150 cursor-pointer ${
               activeTab === 'first'
                 ? 'border-accentCyan text-accentCyan'
                 : 'border-transparent text-textSecondary hover:text-textPrimary'
@@ -90,7 +90,7 @@ export default function CodeCompareModal({
           {selectedAttemptNumber !== null && (
             <button
               onClick={() => setActiveTab('attempt')}
-              className={`px-4.5 py-2.5 text-[15px] font-bold border-b-2 transition-all duration-150 cursor-pointer ${
+              className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-150 cursor-pointer ${
                 activeTab === 'attempt'
                   ? 'border-accentCyan text-accentCyan'
                   : 'border-transparent text-textSecondary hover:text-textPrimary'
@@ -102,7 +102,7 @@ export default function CodeCompareModal({
 
           <button
             onClick={() => setActiveTab('diff')}
-            className={`px-4.5 py-2.5 text-[15px] font-bold border-b-2 transition-all duration-150 cursor-pointer ${
+            className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-150 cursor-pointer ${
               activeTab === 'diff'
                 ? 'border-accentCyan text-accentCyan'
                 : 'border-transparent text-textSecondary hover:text-textPrimary'
@@ -113,23 +113,23 @@ export default function CodeCompareModal({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-auto bg-[#070a13] p-6 text-sm font-mono text-[#cbd5e1] leading-relaxed border-t border-panelBorder/30">
+        <div className="flex-1 overflow-auto bg-[#070a13] p-4.5 text-xs font-mono text-[#cbd5e1] leading-relaxed border-t border-panelBorder/30">
           {activeTab === 'diff' ? (
-            <div className="max-w-4xl mx-auto flex flex-col gap-4.5">
-              <div className="flex items-center gap-2 text-accentCyan border-b border-panelBorder/30 pb-2 mb-2">
-                <Sparkles className="w-5 h-5" />
-                <h3 className="font-extrabold text-sm uppercase tracking-wider">Attempt Debugging Progression Narrative</h3>
+            <div className="max-w-4xl mx-auto flex flex-col gap-3.5">
+              <div className="flex items-center gap-2 text-accentCyan border-b border-panelBorder/20 pb-1.5 mb-1">
+                <Sparkles className="w-4 h-4" />
+                <h3 className="font-bold text-xs uppercase tracking-wider">Attempt Debugging Progression Narrative</h3>
               </div>
-              <p className="text-xs text-textSecondary leading-normal font-sans italic">
-                Below is a chronological log of changes between attempts, calculated locally by checking lines modified, added, and deleted.
+              <p className="text-[11px] text-textSecondary leading-normal font-sans italic">
+                Below is a log of changes between attempts, calculated locally by checking lines modified, added, and deleted.
               </p>
-              <pre className="whitespace-pre-wrap font-mono text-sm text-textSecondary bg-bgSurfaceInput p-4.5 rounded-xl border border-panelBorder/40 overflow-x-auto leading-loose">
+              <pre className="whitespace-pre-wrap font-mono text-xs text-textSecondary bg-bgSurfaceInput p-3.5 rounded-lg border border-panelBorder/20 overflow-x-auto leading-relaxed">
                 {timelineSummary || 'No attempt progression timeline available.'}
               </pre>
             </div>
           ) : (
             <pre className="h-full overflow-auto text-left selection:bg-accentPurple/30 selection:text-white">
-              <code className="block leading-6 whitespace-pre font-mono text-sm">
+              <code className="block leading-relaxed whitespace-pre font-mono text-xs">
                 {getCodeToDisplay()}
               </code>
             </pre>

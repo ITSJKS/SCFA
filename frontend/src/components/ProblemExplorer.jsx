@@ -31,16 +31,16 @@ export default function ProblemExplorer({ problemsData }) {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[72vh] animate-in fade-in duration-300">
+    <div className="flex flex-col lg:flex-row gap-5 h-[72vh] animate-in fade-in duration-200">
       {/* Left Sidebar - Problem List */}
-      <div className="w-full lg:w-80 flex flex-col glass-panel border border-panelBorder rounded-xl overflow-hidden h-full flex-shrink-0">
-        <div className="p-4 border-b border-panelBorder bg-headerBg/40">
-          <h3 className="text-base font-extrabold text-textPrimary">Problems List</h3>
-          <p className="text-xs text-textSecondary mt-0.5">Select a problem to view details</p>
+      <div className="w-full lg:w-80 flex flex-col glass-panel border border-panelBorder rounded-xl overflow-hidden h-[200px] lg:h-full flex-shrink-0">
+        <div className="p-3 border-b border-panelBorder bg-headerBg/20">
+          <h3 className="text-xs font-bold text-textPrimary uppercase tracking-wider">Problems List</h3>
+          <p className="text-[11px] text-textMuted font-medium mt-0.5">Select a problem to view metrics</p>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5 select-none">
+        <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-1.5 select-none">
           {problemsList.length === 0 ? (
-            <div className="text-center text-sm text-textMuted py-8">No problems loaded.</div>
+            <div className="text-center text-xs text-textMuted py-8">No problems loaded.</div>
           ) : (
             problemsList.map((item) => {
               const qid = String(item.question_id);
@@ -50,16 +50,16 @@ export default function ProblemExplorer({ problemsData }) {
                 <div
                   key={qid}
                   onClick={() => setSelectedQid(qid)}
-                  className={`flex flex-col gap-1 p-3 rounded-lg border cursor-pointer transition-all duration-150 ${
+                  className={`flex flex-col gap-1 p-2.5 rounded-lg border cursor-pointer transition-all duration-150 ${
                     isActive
-                      ? 'bg-accentCyan/10 border-accentCyan/40 shadow-[0_0_12px_rgba(0,242,254,0.08)]'
-                      : 'bg-transparent border-transparent hover:bg-bgSurfaceHover hover:border-panelBorder/30'
+                      ? 'bg-accentCyan/10 border-accentCyan/30 shadow-sm'
+                      : 'bg-transparent border-transparent hover:bg-bgSurfaceHover hover:border-panelBorder/20'
                   }`}
                 >
-                  <span className={`text-[15px] font-bold truncate ${isActive ? 'text-accentCyan' : 'text-textPrimary'}`}>
+                  <span className={`text-xs font-semibold truncate ${isActive ? 'text-accentCyan' : 'text-textPrimary'}`}>
                     #{item.question_id} - {item.title}
                   </span>
-                  <div className="flex items-center justify-between text-sm text-textSecondary">
+                  <div className="flex items-center justify-between text-[11px] text-textSecondary">
                     <span>Rate: {item.success_rate_percent}%</span>
                     <span>Attempts: {item.total_attempts}</span>
                   </div>
@@ -71,30 +71,30 @@ export default function ProblemExplorer({ problemsData }) {
       </div>
 
       {/* Right Pane - Problem Detail */}
-      <div className="flex-1 glass-panel border border-panelBorder rounded-xl p-6 overflow-y-auto h-full bg-darkBg/20">
+      <div className="flex-1 glass-panel border border-panelBorder rounded-xl p-4.5 overflow-y-auto h-full bg-darkBg/10">
         {!p ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-textSecondary">
-            <Code className="w-14 h-14 text-accentCyan/20 mb-3" />
-            <h3 className="text-lg font-extrabold text-textPrimary">No Problem Selected</h3>
-            <p className="text-sm text-textMuted max-w-xs mt-1.5">Select a problem from the list to view its metrics and descriptions.</p>
+            <Code className="w-10 h-10 text-accentCyan/20 mb-2" />
+            <h3 className="text-sm font-semibold text-textPrimary">No Problem Selected</h3>
+            <p className="text-xs text-textMuted max-w-xs mt-1">Select a problem from the list to view its metrics and descriptions.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5">
             {/* Header */}
-            <div className="flex justify-between items-start gap-4 border-b border-panelBorder/30 pb-4">
-              <div className="flex flex-col gap-1.5">
-                <h2 className="text-2xl font-black text-textPrimary tracking-tight">{p.title}</h2>
-                <span className="text-xs font-bold text-accentCyan uppercase tracking-wider bg-accentCyan/5 border border-accentCyan/15 px-3 py-1 rounded-full w-fit">
+            <div className="flex justify-between items-start gap-4 border-b border-panelBorder/30 pb-3">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-base font-bold text-textPrimary tracking-tight">{p.title}</h2>
+                <span className="text-[10px] font-bold text-accentCyan uppercase tracking-wider bg-accentCyan/5 border border-accentCyan/15 px-2 py-0.5 rounded w-fit">
                   Question ID: #{p.question_id}
                 </span>
               </div>
             </div>
 
             {/* Metrics cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-bgSurfaceInput border border-panelBorder/40 p-4.5 rounded-xl flex flex-col gap-1">
-                <span className="text-xs text-textMuted font-bold uppercase tracking-wider">Success Rate</span>
-                <span className={`text-2xl font-black ${
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+              <div className="bg-bgSurfaceInput border border-panelBorder/30 p-3.5 rounded-lg flex flex-col gap-0.5">
+                <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Success Rate</span>
+                <span className={`text-lg font-bold ${
                   p.success_rate_percent > 75 
                     ? 'text-accentGreen' 
                     : p.success_rate_percent < 40 
@@ -104,50 +104,50 @@ export default function ProblemExplorer({ problemsData }) {
                   {p.success_rate_percent}%
                 </span>
               </div>
-              <div className="bg-bgSurfaceInput border border-panelBorder/40 p-4.5 rounded-xl flex flex-col gap-1">
-                <span className="text-xs text-textMuted font-bold uppercase tracking-wider">Total Attempts</span>
-                <span className="text-2xl font-black text-textPrimary">{p.total_attempts}</span>
+              <div className="bg-bgSurfaceInput border border-panelBorder/30 p-3.5 rounded-lg flex flex-col gap-0.5">
+                <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Total Attempts</span>
+                <span className="text-lg font-bold text-textPrimary">{p.total_attempts}</span>
               </div>
-              <div className="bg-bgSurfaceInput border border-panelBorder/40 p-4.5 rounded-xl flex flex-col gap-1">
-                <span className="text-xs text-textMuted font-bold uppercase tracking-wider">Unique Students</span>
-                <span className="text-2xl font-black text-textPrimary">{p.unique_students}</span>
+              <div className="bg-bgSurfaceInput border border-panelBorder/30 p-3.5 rounded-lg flex flex-col gap-0.5">
+                <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Unique Students</span>
+                <span className="text-lg font-bold text-textPrimary">{p.unique_students}</span>
               </div>
-              <div className="bg-bgSurfaceInput border border-panelBorder/40 p-4.5 rounded-xl flex flex-col gap-1">
-                <span className="text-xs text-textMuted font-bold uppercase tracking-wider">Avg Attempts to Pass</span>
-                <span className="text-2xl font-black text-textPrimary">{p.avg_attempts_to_pass || 'N/A'}</span>
+              <div className="bg-bgSurfaceInput border border-panelBorder/30 p-3.5 rounded-lg flex flex-col gap-0.5">
+                <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Avg Attempts to Pass</span>
+                <span className="text-lg font-bold text-textPrimary">{p.avg_attempts_to_pass || 'N/A'}</span>
               </div>
             </div>
 
             {/* Description */}
-            <div className="flex flex-col gap-2.5">
-              <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider border-b border-panelBorder/30 pb-2 flex items-center gap-1.5">
-                <Code className="w-4.5 h-4.5 text-accentCyan" /> Problem Description (AI Inferred)
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xs font-bold text-textPrimary uppercase tracking-wider border-b border-panelBorder/20 pb-1.5 flex items-center gap-1.5">
+                <Code className="w-3.5 h-3.5 text-accentCyan" /> Problem Description (AI Inferred)
               </h3>
-              <p className="text-[15px] text-textSecondary leading-relaxed bg-bgSurfaceInput border border-panelBorder/30 p-4.5 rounded-xl whitespace-pre-wrap font-sans">
+              <p className="text-xs text-textSecondary leading-relaxed bg-bgSurfaceInput border border-panelBorder/20 p-3.5 rounded-lg whitespace-pre-wrap font-sans">
                 {p.description || 'No description available for this problem.'}
               </p>
             </div>
 
             {/* Submission Status distribution */}
-            <div className="flex flex-col gap-3.5">
-              <h3 className="text-sm font-bold text-textPrimary uppercase tracking-wider border-b border-panelBorder/30 pb-2 flex items-center gap-1.5">
-                <AlertCircle className="w-4.5 h-4.5 text-accentPurple" /> Submission Status Distribution
+            <div className="flex flex-col gap-2.5">
+              <h3 className="text-xs font-bold text-textPrimary uppercase tracking-wider border-b border-panelBorder/20 pb-1.5 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-accentPurple" /> Submission Status Distribution
               </h3>
-              <div className="flex flex-col gap-3.5">
+              <div className="flex flex-col gap-2.5">
                 {Object.entries(p.status_distribution || {}).map(([name, count]) => {
                   const pct = Math.round((count / p.total_attempts) * 100);
                   const progressColor = getStatusColorClass(name);
                   const textColor = getStatusTextColorClass(name);
 
                   return (
-                    <div key={name} className="flex flex-col gap-1.5">
-                      <div className="flex justify-between items-center text-sm font-semibold">
+                    <div key={name} className="flex flex-col gap-1">
+                      <div className="flex justify-between items-center text-xs font-semibold">
                         <span className="text-textSecondary">{name}</span>
                         <span className={`font-mono ${textColor}`}>
                           {count} ({pct}%)
                         </span>
                       </div>
-                      <div className="h-2 w-full bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/20">
+                      <div className="h-1.5 w-full bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/10">
                         <div
                           className={`h-full rounded-full ${progressColor}`}
                           style={{ width: `${pct}%` }}
