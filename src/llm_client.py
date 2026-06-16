@@ -80,7 +80,7 @@ def generate_mock_feedback(student_email, questions_data):
         "question_feedback": question_feedback
     }
 
-def analyze_student_feedback(student_email, questions_data, custom_api_key=None, raise_on_error=False):
+def analyze_student_feedback(student_email, questions_data, custom_api_key=None, raise_on_error=False, existing_feedback=None):
     """
     Sends the student's problem attempts data to OpenAI to generate personalized feedback.
     """
@@ -91,7 +91,7 @@ def analyze_student_feedback(student_email, questions_data, custom_api_key=None,
         # Graceful fallback if OpenAI is not configured
         return generate_mock_feedback(student_email, questions_data)
         
-    prompt = build_student_feedback_prompt(student_email, questions_data)
+    prompt = build_student_feedback_prompt(student_email, questions_data, existing_feedback)
     
     try:
         response = client.chat.completions.create(

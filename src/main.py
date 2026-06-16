@@ -123,12 +123,14 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
 
     # Load existing summary.json for checkpoint resume if available
     existing_students = {}
+    existing_metadata = {}
     summary_path = os.path.join(output_dir, "summary.json")
     if os.path.exists(summary_path):
         try:
             with open(summary_path, "r") as f:
                 existing_data = json.load(f)
                 existing_students = existing_data.get("students", {})
+                existing_metadata = existing_data.get("metadata", {})
                 print(f"🔄 Found checkpoint: Loaded {len(existing_students)} students from existing report to resume/skip completed tasks.")
         except Exception as e:
             print(f"Could not read existing summary.json for checkpoint resume: {e}")
@@ -207,32 +209,60 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
         student_timelines_by_email[email] = student_q_timeline
         
         # Check if student already has a valid completed AI analysis checkpoint
+        is_fully_unchanged = False
+        estudent = None
         if email in existing_students:
             estudent = existing_students[email]
             if estudent.get("ai_critique_completed") and estudent.get("total_submissions") == len(s_subs):
-                if "assignment_id" not in estudent:
-                    estudent["assignment_id"] = s_subs[0]["assignment_id"] if s_subs else None
-                students_summary[email] = estudent
-                continue
+                is_fully_unchanged = True
+                
+        if is_fully_unchanged:
+            if "assignment_id" not in estudent:
+                estudent["assignment_id"] = s_subs[0]["assignment_id"] if s_subs else None
+            students_summary[email] = estudent
+            continue
 
-        # Otherwise pre-populate with local timeline analysis (instant, no LLM call) and mock feedback
+        # Otherwise pre-populate with timeline analysis (reusing old details if possible)
         questions_analyzed = []
         solved_qids = []
         attempted_qids = []
+        
+        old_q_details = {}
+        if estudent and "attempts_details" in estudent:
+            for q_detail in estudent["attempts_details"]:
+                old_q_details[str(q_detail["question_id"])] = q_detail
+                
         for qid, q_subs in student_q_timeline.items():
-            timeline_res = analyzer.analyze_student_problem_timeline(
-                q_subs, 
-                diff_summarizer=None # Instant local diff summary
-            )
-            meta = problems_metadata.get(qid, {})
-            timeline_res["title"] = meta.get("title", f"Problem {qid}")
-            timeline_res["description"] = meta.get("description", "No description provided.")
+            old_q_detail = old_q_details.get(qid)
+            
+            # If unchanged, reuse the existing details entirely (including already LLM-generated diff summaries)
+            if old_q_detail and len(q_subs) == old_q_detail.get("total_attempts", 0):
+                timeline_res = old_q_detail
+            else:
+                existing_diffs = None
+                if old_q_detail:
+                    existing_diffs = analyzer.parse_existing_timeline_summary(old_q_detail.get("timeline_summary"))
+                
+                timeline_res = analyzer.analyze_student_problem_timeline(
+                    q_subs,
+                    diff_summarizer=None, # Instant local diff summary
+                    existing_diffs=existing_diffs
+                )
+                meta = problems_metadata.get(qid, {})
+                timeline_res["title"] = meta.get("title", f"Problem {qid}")
+                timeline_res["description"] = meta.get("description", "No description provided.")
+                
             questions_analyzed.append(timeline_res)
             attempted_qids.append(qid)
-            if timeline_res["solved"]:
+            if timeline_res.get("solved"):
                 solved_qids.append(qid)
                 
-        feedback = llm_client.generate_mock_feedback(email, questions_analyzed)
+        feedback = None
+        if estudent and "feedback" in estudent:
+            feedback = estudent["feedback"]
+        else:
+            feedback = llm_client.generate_mock_feedback(email, questions_analyzed)
+            
         students_summary[email] = {
             "user_id": uid,
             "email": email,
@@ -246,8 +276,8 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "attempts_details": questions_analyzed,
             "ai_critique_completed": False
         }
-        if email in existing_students and "custom_feedback" in existing_students[email]:
-            students_summary[email]["custom_feedback"] = existing_students[email]["custom_feedback"]
+        if estudent and "custom_feedback" in estudent:
+            students_summary[email]["custom_feedback"] = estudent["custom_feedback"]
 
     summary_path = os.path.join(output_dir, "summary.json")
 
@@ -269,6 +299,10 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             }
             
         os.makedirs(output_dir, exist_ok=True)
+        prev_cost = existing_metadata.get("accumulated_openai_cost_usd", 0.0)
+        prev_prompt_tokens = existing_metadata.get("prompt_tokens", 0)
+        prev_completion_tokens = existing_metadata.get("completion_tokens", 0)
+        
         report_data = {
             "metadata": {
                 "contest_key": contest_key,
@@ -281,10 +315,10 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
                 "total_submissions": len(submissions),
                 "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
                 "dry_run": True,
-                "openai_api_used": False,
-                "accumulated_openai_cost_usd": 0.0,
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
+                "openai_api_used": existing_metadata.get("openai_api_used", False),
+                "accumulated_openai_cost_usd": prev_cost,
+                "prompt_tokens": prev_prompt_tokens,
+                "completion_tokens": prev_completion_tokens,
                 "aborted_by_user": False,
                 "cost_limit_reached": False
             },
@@ -371,19 +405,44 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
                 # Lazily generate LLM diff summaries only for the student being analyzed
                 questions_analyzed_llm = []
                 student_q_timeline = student_timelines_by_email[email]
+                
+                # Retrieve old question details to reuse diffs if available
+                estudent = existing_students.get(email)
+                old_q_details = {}
+                if estudent and "attempts_details" in estudent:
+                    for q_detail in estudent["attempts_details"]:
+                        old_q_details[str(q_detail["question_id"])] = q_detail
+                
                 for qid, q_subs in student_q_timeline.items():
                     check_abort()
-                    timeline_res_llm = analyzer.analyze_student_problem_timeline(
-                        q_subs,
-                        diff_summarizer=check_abort_and_summarize
-                    )
-                    meta = problems_metadata.get(qid, {})
-                    timeline_res_llm["title"] = meta.get("title", f"Problem {qid}")
-                    timeline_res_llm["description"] = meta.get("description", "No description provided.")
-                    questions_analyzed_llm.append(timeline_res_llm)
+                    old_q_detail = old_q_details.get(qid)
                     
+                    # If unchanged, reuse the existing details entirely (including already LLM-generated diff summaries)
+                    if old_q_detail and len(q_subs) == old_q_detail.get("total_attempts", 0):
+                        questions_analyzed_llm.append(old_q_detail)
+                    else:
+                        existing_diffs = None
+                        if old_q_detail:
+                            existing_diffs = analyzer.parse_existing_timeline_summary(old_q_detail.get("timeline_summary"))
+                        
+                        timeline_res_llm = analyzer.analyze_student_problem_timeline(
+                            q_subs,
+                            diff_summarizer=check_abort_and_summarize,
+                            existing_diffs=existing_diffs
+                        )
+                        meta = problems_metadata.get(qid, {})
+                        timeline_res_llm["title"] = meta.get("title", f"Problem {qid}")
+                        timeline_res_llm["description"] = meta.get("description", "No description provided.")
+                        questions_analyzed_llm.append(timeline_res_llm)
+                        
                 check_abort()
-                feedback = llm_client.analyze_student_feedback(email, questions_analyzed_llm, custom_api_key=custom_api_key)
+                existing_feedback = estudent.get("feedback") if estudent else None
+                feedback = llm_client.analyze_student_feedback(
+                    email, 
+                    questions_analyzed_llm, 
+                    custom_api_key=custom_api_key,
+                    existing_feedback=existing_feedback
+                )
                 students_summary[email]["attempts_details"] = questions_analyzed_llm
                 processed_count += 1
             else:
@@ -405,6 +464,9 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             # Incremental Save: Write current state to summary.json every 5 students to avoid high disk/CPU overhead
             if (idx + 1) % 5 == 0:
                 os.makedirs(output_dir, exist_ok=True)
+                prev_cost = existing_metadata.get("accumulated_openai_cost_usd", 0.0)
+                prev_prompt_tokens = existing_metadata.get("prompt_tokens", 0)
+                prev_completion_tokens = existing_metadata.get("completion_tokens", 0)
                 report_data = {
                     "metadata": {
                         "contest_key": contest_key,
@@ -417,10 +479,10 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
                         "total_submissions": len(submissions),
                         "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
                         "dry_run": dry_run,
-                        "openai_api_used": api_key_configured and not dry_run,
-                        "accumulated_openai_cost_usd": current_cost["cost_usd"],
-                        "prompt_tokens": current_cost["prompt_tokens"],
-                        "completion_tokens": current_cost["completion_tokens"],
+                        "openai_api_used": (api_key_configured and not dry_run) or existing_metadata.get("openai_api_used", False),
+                        "accumulated_openai_cost_usd": prev_cost + current_cost["cost_usd"],
+                        "prompt_tokens": prev_prompt_tokens + current_cost["prompt_tokens"],
+                        "completion_tokens": prev_completion_tokens + current_cost["completion_tokens"],
                         "aborted_by_user": False,
                         "cost_limit_reached": cost_limit_reached
                     },
@@ -438,6 +500,9 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
     # 7. Final compilation and status save (handles case when dry_run is true or no students were analyzed)
     os.makedirs(output_dir, exist_ok=True)
     cost_info = llm_client.get_current_cost()
+    prev_cost = existing_metadata.get("accumulated_openai_cost_usd", 0.0)
+    prev_prompt_tokens = existing_metadata.get("prompt_tokens", 0)
+    prev_completion_tokens = existing_metadata.get("completion_tokens", 0)
     report_data = {
         "metadata": {
             "contest_key": contest_key,
@@ -450,10 +515,10 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "total_submissions": len(submissions),
             "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
             "dry_run": dry_run,
-            "openai_api_used": api_key_configured and not dry_run,
-            "accumulated_openai_cost_usd": cost_info["cost_usd"],
-            "prompt_tokens": cost_info["prompt_tokens"],
-            "completion_tokens": cost_info["completion_tokens"],
+            "openai_api_used": (api_key_configured and not dry_run) or existing_metadata.get("openai_api_used", False),
+            "accumulated_openai_cost_usd": prev_cost + cost_info["cost_usd"],
+            "prompt_tokens": prev_prompt_tokens + cost_info["prompt_tokens"],
+            "completion_tokens": prev_completion_tokens + cost_info["completion_tokens"],
             "aborted_by_user": aborted_by_user,
             "cost_limit_reached": cost_limit_reached
         },

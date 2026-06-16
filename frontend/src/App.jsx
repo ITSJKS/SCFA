@@ -837,9 +837,12 @@ export default function App() {
       fileName: file.name,
       fileText: text,
       contestName: defaultName,
+      defaultContestName: defaultName,
       programSelect: 'General Contests',
       newProgramName: '',
-      costLimit: 0.50
+      costLimit: 0.50,
+      isUpdateMode: false,
+      selectedContestKey: ''
     });
   };
 
@@ -1520,23 +1523,84 @@ export default function App() {
                 <span className="font-mono text-textPrimary break-all">{uploadModal.fileName}</span>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Contest Name</label>
-                <input
-                  type="text"
-                  value={uploadModal.contestName}
-                  onChange={(e) => setUploadModal(prev => ({ ...prev, contestName: e.target.value }))}
-                  placeholder="e.g. Placement Contest 5"
-                  className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none transition-all"
-                />
+              <div className="flex gap-4 p-1 bg-bgSurfaceInput border border-panelBorder rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setUploadModal(prev => ({ 
+                    ...prev, 
+                    isUpdateMode: false,
+                    contestName: prev.defaultContestName || ''
+                  }))}
+                  className={`flex-1 py-1.5 text-xs font-extrabold rounded-md uppercase tracking-wider transition-all cursor-pointer ${!uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg shadow-md' : 'text-textSecondary hover:text-textPrimary'}`}
+                >
+                  🆕 Create New
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const firstContest = contestsList[0];
+                    setUploadModal(prev => ({ 
+                      ...prev, 
+                      isUpdateMode: true,
+                      selectedContestKey: firstContest ? firstContest.contest_key : '',
+                      contestName: firstContest ? firstContest.contest_name : '',
+                      programSelect: firstContest ? (firstContest.program_name || 'General Contests') : 'General Contests'
+                    }));
+                  }}
+                  className={`flex-1 py-1.5 text-xs font-extrabold rounded-md uppercase tracking-wider transition-all cursor-pointer ${uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg shadow-md' : 'text-textSecondary hover:text-textPrimary'}`}
+                >
+                  🔄 Update Existing
+                </button>
               </div>
+
+              {uploadModal.isUpdateMode ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Select Contest to Update</label>
+                  <select
+                    value={uploadModal.selectedContestKey}
+                    onChange={(e) => {
+                      const selected = contestsList.find(c => c.contest_key === e.target.value);
+                      if (selected) {
+                        setUploadModal(prev => ({
+                          ...prev,
+                          selectedContestKey: selected.contest_key,
+                          contestName: selected.contest_name,
+                          programSelect: selected.program_name || 'General Contests'
+                        }));
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
+                  >
+                    {contestsList.map(c => (
+                      <option key={c.contest_key} value={c.contest_key} className="bg-panelBgSolid text-textPrimary">
+                        {c.contest_name} ({c.program_name || 'General Contests'})
+                      </option>
+                    ))}
+                    {contestsList.length === 0 && (
+                      <option value="" disabled className="bg-panelBgSolid text-textMuted">No existing contests found</option>
+                    )}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Contest Name</label>
+                  <input
+                    type="text"
+                    value={uploadModal.contestName}
+                    onChange={(e) => setUploadModal(prev => ({ ...prev, contestName: e.target.value }))}
+                    placeholder="e.g. Placement Contest 5"
+                    className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none transition-all"
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Program / Cohort Group</label>
                 <select
                   value={uploadModal.programSelect}
+                  disabled={uploadModal.isUpdateMode}
                   onChange={(e) => setUploadModal(prev => ({ ...prev, programSelect: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
+                  className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {uniquePrograms.filter(p => p !== 'All').map(p => (
                     <option key={p} value={p} className="bg-panelBgSolid text-textPrimary">{p}</option>

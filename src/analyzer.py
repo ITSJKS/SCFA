@@ -65,7 +65,29 @@ def compute_diff(code1, code2):
         
     return summary
 
-def analyze_student_problem_timeline(submissions, diff_summarizer=None):
+def parse_existing_timeline_summary(timeline_summary_str):
+    """
+    Parses an existing timeline_summary string into a dict mapping attempt_index (int) -> diff_description (str).
+    """
+    if not timeline_summary_str:
+        return {}
+    
+    sections = timeline_summary_str.split("\n\n")
+    parsed = {}
+    for section in sections:
+        section = section.strip()
+        if not section:
+            continue
+        lines = section.splitlines()
+        first_line = lines[0]
+        match = re.match(r"Attempt\s+(\d+)", first_line)
+        if match:
+            idx = int(match.group(1))
+            diff_desc = "\n".join(lines[1:])
+            parsed[idx] = diff_desc
+    return parsed
+
+def analyze_student_problem_timeline(submissions, diff_summarizer=None, existing_diffs=None):
     """
     Analyzes a list of chronological submissions from a single student for a single question.
     Extracts metrics and a progression timeline of code changes.
@@ -119,32 +141,36 @@ def analyze_student_problem_timeline(submissions, diff_summarizer=None):
     # Compute chronological diff timeline
     timeline_desc = []
     prev_code = ""
+    attempts_history = []
     for t in transitions:
         idx = t["attempt_index"]
         status_name = t["status_name"]
         tests = t["tests_passing"]
         
-        diff_desc = diff_summarizer(prev_code, t["source_code"])
+        if existing_diffs and idx in existing_diffs:
+            diff_desc = existing_diffs[idx]
+        else:
+            diff_desc = diff_summarizer(prev_code, t["source_code"])
+            
         err_info = f" (Error: {t['error_message']})" if t["error_message"] else ""
         
         timeline_desc.append(
             f"Attempt {idx} | Status: {status_name} | Tests Passed: {tests}{err_info}\n"
             f"{diff_desc}"
         )
+        
+        attempts_history.append({
+            "attempt_index": idx,
+            "status_name": status_name,
+            "tests_passing": tests,
+            "source_code": t["source_code"],
+            "diff_summary": diff_desc
+        })
+        
         prev_code = t["source_code"]
         
     # Summarize final outcome
     solved = best_sub["all_test_cases_passing"]
-    
-    attempts_history = [
-        {
-            "attempt_index": t["attempt_index"],
-            "status_name": t["status_name"],
-            "tests_passing": t["tests_passing"],
-            "source_code": t["source_code"]
-        }
-        for t in transitions
-    ]
     
     return {
         "question_id": first_sub["question_id"],

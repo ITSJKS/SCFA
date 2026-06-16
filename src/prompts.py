@@ -36,12 +36,21 @@ You MUST return a JSON response with the following format. Ensure the response i
 }
 """
 
-def build_student_feedback_prompt(student_email, questions_data):
+def build_student_feedback_prompt(student_email, questions_data, existing_feedback=None):
     """
     Constructs the prompt for analyzing a single student.
     questions_data is a list of dicts, each representing a question attempt.
     """
     prompt = f"Student Identifier: {student_email}\n\n"
+    
+    if existing_feedback:
+        prompt += "PREVIOUS ASSESSMENT CONTEXT:\n"
+        prompt += "The student was previously evaluated and received the following overall feedback:\n"
+        prompt += f"- Strengths: {json.dumps(existing_feedback.get('strengths', []))}\n"
+        prompt += f"- Weaknesses: {json.dumps(existing_feedback.get('weaknesses', []))}\n"
+        prompt += f"- Recommendations: {json.dumps(existing_feedback.get('recommendations', []))}\n"
+        prompt += "Please update and adapt this overall feedback (strengths, weaknesses, and recommendations) to incorporate the new results/progress shown below. If the student has made progress (e.g. solved a previously unsolved problem), make sure to remove or update related weaknesses/recommendations.\n\n"
+
     prompt += "Below are the student's submission timelines and code details for the problems they attempted:\n\n"
     
     for q in questions_data:
