@@ -597,7 +597,7 @@ export default function EmailFeedbackHub({
                             {student.email}
                           </td>
                           <td className="p-3 text-center font-bold text-textSecondary">
-                            {student.solved_count} / {student.attempted_count}
+                            {student.solved_count} / {student.total_questions || student.attempted_count}
                           </td>
                           <td className="p-3 text-center">
                             {hasFeedback ? (

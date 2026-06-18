@@ -55,20 +55,33 @@ def parse_date(date_str):
     # Final fallback: return epoch min but don't crash
     return datetime.min
 
-def load_problems_metadata(filepath="data/problems_metadata.json"):
+def load_problems_metadata(filepath="data/problems_metadata.json", contest_key=None):
+    normalized = {}
     if os.path.exists(filepath):
         try:
             with open(filepath, "r") as f:
                 data = json.load(f)
                 # Normalize keys (strip commas, convert to string)
-                normalized = {}
                 for k, v in data.items():
                     norm_k = k.replace(",", "").strip()
                     normalized[norm_k] = v
-                return normalized
         except Exception as e:
             print(f"Warning: Failed to load problems metadata from {filepath}: {e}")
-    return {}
+            
+    if contest_key:
+        contest_meta_path = os.path.join("data", "contests", f"{contest_key}_problems.json")
+        if os.path.exists(contest_meta_path):
+            try:
+                with open(contest_meta_path, "r") as f:
+                    c_meta = json.load(f)
+                    if isinstance(c_meta, dict):
+                        for k, v in c_meta.items():
+                            norm_k = k.replace(",", "").strip()
+                            normalized[norm_k] = v
+                        print(f"Merged contest-specific problem metadata from {contest_meta_path}")
+            except Exception as e:
+                print(f"Warning: Failed to load contest-specific problem metadata from {contest_meta_path}: {e}")
+    return normalized
 
 def parse_submissions_file(filepath, problems_metadata=None):
     if problems_metadata is None:

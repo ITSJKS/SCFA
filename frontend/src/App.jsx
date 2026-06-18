@@ -81,6 +81,8 @@ export default function App() {
     isOpen: false,
     fileName: '',
     fileText: '',
+    problemsFileName: '',
+    problemsFileText: '',
     contestName: '',
     programSelect: 'General Contests',
     newProgramName: '',
@@ -836,6 +838,8 @@ export default function App() {
       isOpen: true,
       fileName: file.name,
       fileText: text,
+      problemsFileName: '',
+      problemsFileText: '',
       contestName: defaultName,
       defaultContestName: defaultName,
       programSelect: 'General Contests',
@@ -848,7 +852,7 @@ export default function App() {
 
   // Submit Upload Config and File
   const handleUploadSubmit = async () => {
-    const { fileText, fileName, contestName, programSelect, newProgramName, costLimit } = uploadModal;
+    const { fileText, fileName, contestName, programSelect, newProgramName, costLimit, problemsFileText, problemsFileName } = uploadModal;
     
     const cleanContestName = contestName.trim();
     if (!cleanContestName) {
@@ -870,7 +874,18 @@ export default function App() {
     showToast('Uploading and parsing contest file...', 'info');
 
     try {
-      // Stream file upload
+      // 1. If problems details file is loaded, upload it first
+      if (problemsFileText) {
+        const pRes = await authenticatedFetch(`/api/upload?filename=${encodeURIComponent(problemsFileName)}&contest_name=${encodeURIComponent(cleanContestName)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: problemsFileText
+        });
+        const pData = await pRes.json();
+        if (!pData.success) throw new Error(pData.message || 'Problems metadata upload failed');
+      }
+
+      // 2. Stream contest file upload
       const res = await authenticatedFetch(`/api/upload?filename=${encodeURIComponent(fileName)}&contest_name=${encodeURIComponent(cleanContestName)}&program_name=${encodeURIComponent(targetProgram)}&cost_limit=${costLimit}&run_ai=${runAiUpload}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1622,6 +1637,34 @@ export default function App() {
                   />
                 </div>
               )}
+
+              {/* Optional Problems Details File */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">
+                  Optional: Problems Details JSON (problem.json)
+                </label>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={async (e) => {
+                    if (e.target.files.length > 0) {
+                      const file = e.target.files[0];
+                      const text = await file.text();
+                      setUploadModal(prev => ({
+                        ...prev,
+                        problemsFileName: file.name,
+                        problemsFileText: text
+                      }));
+                    }
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-bgSurfaceInput border border-panelBorder hover:border-textSecondary rounded-lg text-textPrimary outline-none cursor-pointer file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-extrabold file:uppercase file:bg-accentCyan/20 file:text-accentCyan hover:file:bg-accentCyan/30 file:cursor-pointer transition-all"
+                />
+                {uploadModal.problemsFileName && (
+                  <span className="text-[10px] text-accentCyan font-mono mt-0.5 break-all">
+                    📎 Loaded: {uploadModal.problemsFileName}
+                  </span>
+                )}
+              </div>
 
               {/* Checkbox: Run AI Critique */}
               <div className="flex flex-col gap-2 bg-bgSurfaceInput border border-panelBorder p-3.5 rounded-lg">

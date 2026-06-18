@@ -87,7 +87,7 @@ def parse_existing_timeline_summary(timeline_summary_str):
             parsed[idx] = diff_desc
     return parsed
 
-def analyze_student_problem_timeline(submissions, diff_summarizer=None, existing_diffs=None):
+def analyze_student_problem_timeline(submissions, diff_summarizer=None, existing_diffs=None, total_test_cases=1):
     """
     Analyzes a list of chronological submissions from a single student for a single question.
     Extracts metrics and a progression timeline of code changes.
@@ -145,7 +145,7 @@ def analyze_student_problem_timeline(submissions, diff_summarizer=None, existing
     for t in transitions:
         idx = t["attempt_index"]
         status_name = t["status_name"]
-        tests = t["tests_passing"]
+        tests = f"{t['tests_passing']}/{total_test_cases}"
         
         if existing_diffs and idx in existing_diffs:
             diff_desc = existing_diffs[idx]
@@ -162,7 +162,8 @@ def analyze_student_problem_timeline(submissions, diff_summarizer=None, existing
         attempts_history.append({
             "attempt_index": idx,
             "status_name": status_name,
-            "tests_passing": tests,
+            "tests_passing": t["tests_passing"],
+            "total_test_cases": total_test_cases,
             "source_code": t["source_code"],
             "diff_summary": diff_desc
         })
@@ -179,6 +180,7 @@ def analyze_student_problem_timeline(submissions, diff_summarizer=None, existing
         "best_attempt_index": submissions.index(best_sub) + 1,
         "best_status": get_status_name(best_sub["status"]),
         "best_tests_passed": best_sub["tests_passing"],
+        "total_test_cases": total_test_cases,
         "first_attempt_code": first_sub["source_code"],
         "final_attempt_code": final_sub["source_code"],
         "best_attempt_code": best_sub["source_code"],
