@@ -23,11 +23,13 @@ export default function Sidebar({
 
       // 2. Dropdown Filter Match
       if (filterType === 'solved-all') {
-        return s.solved_count === s.attempted_count && s.attempted_count > 0;
+        const totalQ = s.total_questions || s.attempted_count;
+        return s.solved_count === totalQ && totalQ > 0;
       }
       if (filterType === 'struggling') {
-        const passRate = s.attempted_count > 0 ? (s.solved_count / s.attempted_count) : 0;
-        return passRate < 0.5 && s.attempted_count > 0;
+        const totalQ = s.total_questions || s.attempted_count;
+        const passRate = totalQ > 0 ? (s.solved_count / totalQ) : 0;
+        return passRate < 0.5 && totalQ > 0;
       }
       if (filterType === 'high-attempts') {
         return s.total_submissions > 15;
@@ -78,8 +80,9 @@ export default function Sidebar({
         ) : (
           studentList.map(([email, s]) => {
             const isSelected = email === selectedStudentEmail;
-            const solvedRatio = `${s.solved_count}/${s.attempted_count}`;
-            const pct = s.attempted_count > 0 ? Math.round((s.solved_count / s.attempted_count) * 100) : 0;
+            const totalQ = s.total_questions || s.attempted_count || 1;
+            const solvedRatio = `${s.solved_count}/${totalQ}`;
+            const pct = Math.round((s.solved_count / totalQ) * 100);
             const rateColor = pct > 75 ? 'text-accentGreen' : (pct < 40 ? 'text-accentRose' : 'text-accentOrange');
 
             return (

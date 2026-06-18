@@ -94,8 +94,12 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
     # Reset LLM client cost tracker
     llm_client.reset_cost_tracker()
 
+    # Determine contest key and folders early to load proper problem metadata
+    filename_base = os.path.splitext(os.path.basename(file_path))[0]
+    contest_key = "".join(c for c in filename_base if c.isalnum() or c in ('-', '_')).strip()
+
     # 1. Load problems metadata
-    problems_metadata = parser.load_problems_metadata()
+    problems_metadata = parser.load_problems_metadata("data/problems_metadata.json", contest_key=contest_key)
     print(f"Loaded {len(problems_metadata)} problem metadata entries.")
 
     # 2. Parse and clean raw JSON
@@ -106,10 +110,6 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
         raise e
     print(f"Parsed {len(submissions)} raw submission records.")
 
-    # Determine folders
-    filename_base = os.path.splitext(os.path.basename(file_path))[0]
-    contest_key = "".join(c for c in filename_base if c.isalnum() or c in ('-', '_')).strip()
-    
     if not contest_name:
         contest_name = contest_key.replace('_', ' ').replace('-', ' ').strip()
         
@@ -123,12 +123,14 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
 
     # Load existing summary.json for checkpoint resume if available
     existing_students = {}
+    existing_metadata = {}
     summary_path = os.path.join(output_dir, "summary.json")
     if os.path.exists(summary_path):
         try:
             with open(summary_path, "r") as f:
                 existing_data = json.load(f)
                 existing_students = existing_data.get("students", {})
+                existing_metadata = existing_data.get("metadata", {})
                 print(f"🔄 Found checkpoint: Loaded {len(existing_students)} students from existing report to resume/skip completed tasks.")
         except Exception as e:
             print(f"Could not read existing summary.json for checkpoint resume: {e}")
@@ -142,7 +144,17 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
     student_groups, problem_groups = parser.group_data(submissions, problems_metadata)
     print(f"Found {len(student_groups)} unique students and {len(problem_groups)} unique questions.")
 
-    # 5. Process problem-wise metrics
+    # 5. Process problem-wise metrics and calculate total test cases per question
+    question_total_test_cases = {}
+    for qid, p_data in problem_groups.items():
+        q_subs = p_data["submissions"]
+        total = max([s["tests_passing"] for s in q_subs if s["all_test_cases_passing"]], default=0)
+        if total == 0:
+            total = max([s["tests_passing"] for s in q_subs], default=1)
+        if total <= 0:
+            total = 1
+        question_total_test_cases[str(qid)] = total
+
     problems_summary = {}
     for qid, p_data in problem_groups.items():
         p_subs = p_data["submissions"]
@@ -183,7 +195,8 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "passed_students": passed_students,
             "success_rate_percent": round(success_rate, 1),
             "avg_attempts_to_pass": round(avg_attempts_to_pass, 1),
-            "status_distribution": status_counts
+            "status_distribution": status_counts,
+            "total_test_cases": question_total_test_cases.get(str(qid), 1)
         }
 
     # 6. Process student-wise timelines and generate feedback
@@ -207,32 +220,103 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
         student_timelines_by_email[email] = student_q_timeline
         
         # Check if student already has a valid completed AI analysis checkpoint
+        is_fully_unchanged = False
+        estudent = None
         if email in existing_students:
             estudent = existing_students[email]
             if estudent.get("ai_critique_completed") and estudent.get("total_submissions") == len(s_subs):
-                if "assignment_id" not in estudent:
-                    estudent["assignment_id"] = s_subs[0]["assignment_id"] if s_subs else None
-                students_summary[email] = estudent
-                continue
+                is_fully_unchanged = True
+                
+        if is_fully_unchanged:
+            if "assignment_id" not in estudent:
+                estudent["assignment_id"] = s_subs[0]["assignment_id"] if s_subs else None
+            if "total_questions" not in estudent:
+                estudent["total_questions"] = len(problem_groups)
+            students_summary[email] = estudent
+            continue
 
-        # Otherwise pre-populate with local timeline analysis (instant, no LLM call) and mock feedback
+        # Otherwise pre-populate with timeline analysis (reusing old details if possible)
         questions_analyzed = []
         solved_qids = []
         attempted_qids = []
-        for qid, q_subs in student_q_timeline.items():
-            timeline_res = analyzer.analyze_student_problem_timeline(
-                q_subs, 
-                diff_summarizer=None # Instant local diff summary
-            )
-            meta = problems_metadata.get(qid, {})
-            timeline_res["title"] = meta.get("title", f"Problem {qid}")
-            timeline_res["description"] = meta.get("description", "No description provided.")
-            questions_analyzed.append(timeline_res)
-            attempted_qids.append(qid)
-            if timeline_res["solved"]:
-                solved_qids.append(qid)
+        
+        old_q_details = {}
+        if estudent and "attempts_details" in estudent:
+            for q_detail in estudent["attempts_details"]:
+                old_q_details[str(q_detail["question_id"])] = q_detail
                 
-        feedback = llm_client.generate_mock_feedback(email, questions_analyzed)
+        # Iterate over all questions in the contest to include unattempted ones
+        all_qids = sorted(problem_groups.keys(), key=lambda x: int(x) if x.isdigit() else x)
+        for qid in all_qids:
+            q_subs = student_q_timeline.get(qid, [])
+            total_tc = question_total_test_cases.get(qid, 1)
+            
+            if q_subs:
+                old_q_detail = old_q_details.get(qid)
+                
+                # If unchanged, reuse the existing details entirely (including already LLM-generated diff summaries)
+                if old_q_detail and len(q_subs) == old_q_detail.get("total_attempts", 0):
+                    timeline_res = old_q_detail
+                else:
+                    existing_diffs = None
+                    if old_q_detail:
+                        existing_diffs = analyzer.parse_existing_timeline_summary(old_q_detail.get("timeline_summary"))
+                    
+                    timeline_res = analyzer.analyze_student_problem_timeline(
+                        q_subs,
+                        diff_summarizer=None, # Instant local diff summary
+                        existing_diffs=existing_diffs,
+                        total_test_cases=total_tc
+                    )
+                    meta = problems_metadata.get(qid, {})
+                    timeline_res["title"] = meta.get("title", f"Problem {qid}")
+                    timeline_res["description"] = meta.get("description", "No description provided.")
+                    timeline_res["total_test_cases"] = total_tc
+                    if "constraints" in meta:
+                        timeline_res["constraints"] = meta["constraints"]
+                    if "optimal_approach" in meta:
+                        timeline_res["optimal_approach"] = meta["optimal_approach"]
+                    if "resources" in meta:
+                        timeline_res["resources"] = meta["resources"]
+                    
+                questions_analyzed.append(timeline_res)
+                attempted_qids.append(qid)
+                if timeline_res.get("solved"):
+                    solved_qids.append(qid)
+            else:
+                # Student did not attempt this question
+                meta = problems_metadata.get(qid, {})
+                timeline_res = {
+                    "question_id": int(qid) if qid.isdigit() else qid,
+                    "title": meta.get("title", f"Problem {qid}"),
+                    "description": meta.get("description", "No description provided."),
+                    "total_attempts": 0,
+                    "solved": False,
+                    "best_attempt_index": 0,
+                    "best_status": "Not Attempted",
+                    "best_tests_passed": 0,
+                    "total_test_cases": total_tc,
+                    "first_attempt_code": "",
+                    "final_attempt_code": "",
+                    "best_attempt_code": "",
+                    "timeline_summary": "Not Attempted",
+                    "transitions_count": 0,
+                    "attempts": []
+                }
+                if "constraints" in meta:
+                    timeline_res["constraints"] = meta["constraints"]
+                if "optimal_approach" in meta:
+                    timeline_res["optimal_approach"] = meta["optimal_approach"]
+                if "resources" in meta:
+                    timeline_res["resources"] = meta["resources"]
+                questions_analyzed.append(timeline_res)
+                
+        feedback = None
+        if estudent and "feedback" in estudent:
+            feedback = estudent["feedback"]
+        else:
+            feedback = llm_client.generate_mock_feedback(email, questions_analyzed)
+            
         students_summary[email] = {
             "user_id": uid,
             "email": email,
@@ -240,14 +324,15 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "total_submissions": len(s_subs),
             "solved_count": len(solved_qids),
             "attempted_count": len(attempted_qids),
+            "total_questions": len(problem_groups),
             "solved_questions": solved_qids,
             "attempted_questions": attempted_qids,
             "feedback": feedback,
             "attempts_details": questions_analyzed,
             "ai_critique_completed": False
         }
-        if email in existing_students and "custom_feedback" in existing_students[email]:
-            students_summary[email]["custom_feedback"] = existing_students[email]["custom_feedback"]
+        if estudent and "custom_feedback" in estudent:
+            students_summary[email]["custom_feedback"] = estudent["custom_feedback"]
 
     summary_path = os.path.join(output_dir, "summary.json")
 
@@ -269,6 +354,10 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             }
             
         os.makedirs(output_dir, exist_ok=True)
+        prev_cost = existing_metadata.get("accumulated_openai_cost_usd", 0.0)
+        prev_prompt_tokens = existing_metadata.get("prompt_tokens", 0)
+        prev_completion_tokens = existing_metadata.get("completion_tokens", 0)
+        
         report_data = {
             "metadata": {
                 "contest_key": contest_key,
@@ -281,10 +370,10 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
                 "total_submissions": len(submissions),
                 "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
                 "dry_run": True,
-                "openai_api_used": False,
-                "accumulated_openai_cost_usd": 0.0,
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
+                "openai_api_used": existing_metadata.get("openai_api_used", False),
+                "accumulated_openai_cost_usd": prev_cost,
+                "prompt_tokens": prev_prompt_tokens,
+                "completion_tokens": prev_completion_tokens,
                 "aborted_by_user": False,
                 "cost_limit_reached": False
             },
@@ -371,19 +460,84 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
                 # Lazily generate LLM diff summaries only for the student being analyzed
                 questions_analyzed_llm = []
                 student_q_timeline = student_timelines_by_email[email]
-                for qid, q_subs in student_q_timeline.items():
+                
+                # Retrieve old question details to reuse diffs if available
+                estudent = existing_students.get(email)
+                old_q_details = {}
+                if estudent and "attempts_details" in estudent:
+                    for q_detail in estudent["attempts_details"]:
+                        old_q_details[str(q_detail["question_id"])] = q_detail
+                
+                all_qids = sorted(problem_groups.keys(), key=lambda x: int(x) if x.isdigit() else x)
+                for qid in all_qids:
                     check_abort()
-                    timeline_res_llm = analyzer.analyze_student_problem_timeline(
-                        q_subs,
-                        diff_summarizer=check_abort_and_summarize
-                    )
-                    meta = problems_metadata.get(qid, {})
-                    timeline_res_llm["title"] = meta.get("title", f"Problem {qid}")
-                    timeline_res_llm["description"] = meta.get("description", "No description provided.")
-                    questions_analyzed_llm.append(timeline_res_llm)
+                    q_subs = student_q_timeline.get(qid, [])
+                    total_tc = question_total_test_cases.get(qid, 1)
                     
+                    if q_subs:
+                        old_q_detail = old_q_details.get(qid)
+                        
+                        # If unchanged, reuse the existing details entirely (including already LLM-generated diff summaries)
+                        if old_q_detail and len(q_subs) == old_q_detail.get("total_attempts", 0):
+                            questions_analyzed_llm.append(old_q_detail)
+                        else:
+                            existing_diffs = None
+                            if old_q_detail:
+                                existing_diffs = analyzer.parse_existing_timeline_summary(old_q_detail.get("timeline_summary"))
+                            
+                            timeline_res_llm = analyzer.analyze_student_problem_timeline(
+                                q_subs,
+                                diff_summarizer=check_abort_and_summarize,
+                                existing_diffs=existing_diffs,
+                                total_test_cases=total_tc
+                            )
+                            meta = problems_metadata.get(qid, {})
+                            timeline_res_llm["title"] = meta.get("title", f"Problem {qid}")
+                            timeline_res_llm["description"] = meta.get("description", "No description provided.")
+                            timeline_res_llm["total_test_cases"] = total_tc
+                            if "constraints" in meta:
+                                timeline_res_llm["constraints"] = meta["constraints"]
+                            if "optimal_approach" in meta:
+                                timeline_res_llm["optimal_approach"] = meta["optimal_approach"]
+                            if "resources" in meta:
+                                timeline_res_llm["resources"] = meta["resources"]
+                            questions_analyzed_llm.append(timeline_res_llm)
+                    else:
+                        # Student did not attempt this question
+                        meta = problems_metadata.get(qid, {})
+                        timeline_res_llm = {
+                            "question_id": int(qid) if qid.isdigit() else qid,
+                            "title": meta.get("title", f"Problem {qid}"),
+                            "description": meta.get("description", "No description provided."),
+                            "total_attempts": 0,
+                            "solved": False,
+                            "best_attempt_index": 0,
+                            "best_status": "Not Attempted",
+                            "best_tests_passed": 0,
+                            "total_test_cases": total_tc,
+                            "first_attempt_code": "",
+                            "final_attempt_code": "",
+                            "best_attempt_code": "",
+                            "timeline_summary": "Not Attempted",
+                            "transitions_count": 0,
+                            "attempts": []
+                        }
+                        if "constraints" in meta:
+                            timeline_res_llm["constraints"] = meta["constraints"]
+                        if "optimal_approach" in meta:
+                            timeline_res_llm["optimal_approach"] = meta["optimal_approach"]
+                        if "resources" in meta:
+                            timeline_res_llm["resources"] = meta["resources"]
+                        questions_analyzed_llm.append(timeline_res_llm)
+                        
                 check_abort()
-                feedback = llm_client.analyze_student_feedback(email, questions_analyzed_llm, custom_api_key=custom_api_key)
+                existing_feedback = estudent.get("feedback") if estudent else None
+                feedback = llm_client.analyze_student_feedback(
+                    email, 
+                    questions_analyzed_llm, 
+                    custom_api_key=custom_api_key,
+                    existing_feedback=existing_feedback
+                )
                 students_summary[email]["attempts_details"] = questions_analyzed_llm
                 processed_count += 1
             else:
@@ -405,6 +559,9 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             # Incremental Save: Write current state to summary.json every 5 students to avoid high disk/CPU overhead
             if (idx + 1) % 5 == 0:
                 os.makedirs(output_dir, exist_ok=True)
+                prev_cost = existing_metadata.get("accumulated_openai_cost_usd", 0.0)
+                prev_prompt_tokens = existing_metadata.get("prompt_tokens", 0)
+                prev_completion_tokens = existing_metadata.get("completion_tokens", 0)
                 report_data = {
                     "metadata": {
                         "contest_key": contest_key,
@@ -417,10 +574,10 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
                         "total_submissions": len(submissions),
                         "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
                         "dry_run": dry_run,
-                        "openai_api_used": api_key_configured and not dry_run,
-                        "accumulated_openai_cost_usd": current_cost["cost_usd"],
-                        "prompt_tokens": current_cost["prompt_tokens"],
-                        "completion_tokens": current_cost["completion_tokens"],
+                        "openai_api_used": (api_key_configured and not dry_run) or existing_metadata.get("openai_api_used", False),
+                        "accumulated_openai_cost_usd": prev_cost + current_cost["cost_usd"],
+                        "prompt_tokens": prev_prompt_tokens + current_cost["prompt_tokens"],
+                        "completion_tokens": prev_completion_tokens + current_cost["completion_tokens"],
                         "aborted_by_user": False,
                         "cost_limit_reached": cost_limit_reached
                     },
@@ -438,6 +595,9 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
     # 7. Final compilation and status save (handles case when dry_run is true or no students were analyzed)
     os.makedirs(output_dir, exist_ok=True)
     cost_info = llm_client.get_current_cost()
+    prev_cost = existing_metadata.get("accumulated_openai_cost_usd", 0.0)
+    prev_prompt_tokens = existing_metadata.get("prompt_tokens", 0)
+    prev_completion_tokens = existing_metadata.get("completion_tokens", 0)
     report_data = {
         "metadata": {
             "contest_key": contest_key,
@@ -450,10 +610,10 @@ def run_analysis(file_path, dry_run=False, student_limit=None, output_dir=None, 
             "total_submissions": len(submissions),
             "assignment_ids": list(set(sub["assignment_id"] for sub in submissions if sub.get("assignment_id"))),
             "dry_run": dry_run,
-            "openai_api_used": api_key_configured and not dry_run,
-            "accumulated_openai_cost_usd": cost_info["cost_usd"],
-            "prompt_tokens": cost_info["prompt_tokens"],
-            "completion_tokens": cost_info["completion_tokens"],
+            "openai_api_used": (api_key_configured and not dry_run) or existing_metadata.get("openai_api_used", False),
+            "accumulated_openai_cost_usd": prev_cost + cost_info["cost_usd"],
+            "prompt_tokens": prev_prompt_tokens + cost_info["prompt_tokens"],
+            "completion_tokens": prev_completion_tokens + cost_info["completion_tokens"],
             "aborted_by_user": aborted_by_user,
             "cost_limit_reached": cost_limit_reached
         },
@@ -697,6 +857,7 @@ def get_progress(program: str = Query("All"), current_user: dict = Depends(get_c
             progress_data["students"][email]["history"][c_key] = {
                 "solved_count": s_info.get("solved_count", 0),
                 "attempted_count": s_info.get("attempted_count", 0),
+                "total_questions": s_info.get("total_questions", total_questions),
                 "assignment_id": s_info.get("assignment_id", None)
             }
             
@@ -862,9 +1023,13 @@ async def upload_contest(
         if contest_name:
             clean_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in contest_name.strip())
             clean_name = "_".join(part for part in clean_name.split('_') if part)
-            safe_filename = f"{clean_name}.json"
+            if "problem" in filename.lower():
+                safe_filename = f"{clean_name}_problems.json"
+            else:
+                safe_filename = f"{clean_name}.json"
         else:
             safe_filename = "".join(c for c in filename if c.isalnum() or c in ('.', '-', '_')).strip()
+            clean_name = os.path.splitext(safe_filename)[0]
 
         os.makedirs("data/contests", exist_ok=True)
         file_path = os.path.join("data/contests", safe_filename)
@@ -872,6 +1037,18 @@ async def upload_contest(
         with open(file_path, "w") as f:
             f.write(json_text)
             
+        if "problems" in safe_filename:
+            # Sync to S3 if configured
+            from src.s3_client import S3SyncClient
+            s3 = S3SyncClient()
+            if s3.is_configured():
+                s3.upload_file(file_path, f"data/contests/{safe_filename}")
+            return {
+                "success": True, 
+                "message": "Problems metadata file uploaded successfully.", 
+                "contest_key": clean_name
+            }
+
         # Run the analysis in the background (role-based rules)
         if current_user["role"] == "admin":
             has_key = os.environ.get("OPENAI_API_KEY") is not None
@@ -1026,12 +1203,23 @@ def analyze_student(
                 raise Exception("No custom OpenAI API key configured. Faculty cannot perform AI critique. Please configure it in Settings.")
         
         # Load problems metadata
-        problems_metadata = parser.load_problems_metadata()
+        problems_metadata = parser.load_problems_metadata("data/problems_metadata.json", contest_key=contest_key)
         
         # Parse raw submissions
         submissions = parser.parse_submissions_file(raw_file_path, problems_metadata)
         student_groups, problem_groups = parser.group_data(submissions, problems_metadata)
         
+        # Calculate total test cases per question
+        question_total_test_cases = {}
+        for qid, p_data in problem_groups.items():
+            q_subs = p_data["submissions"]
+            total = max([s["tests_passing"] for s in q_subs if s["all_test_cases_passing"]], default=0)
+            if total == 0:
+                total = max([s["tests_passing"] for s in q_subs], default=1)
+            if total <= 0:
+                total = 1
+            question_total_test_cases[str(qid)] = total
+            
         if not os.path.exists(summary_path):
             raise Exception("Contest summary.json not found. Run analysis first.")
             
@@ -1054,6 +1242,7 @@ def analyze_student(
                 # Update specific student record
                 student_record["feedback"] = feedback
                 student_record["ai_critique_completed"] = True
+                student_record["total_questions"] = len(problem_groups)
                 
                 summary_data["students"][email] = student_record
                 
@@ -1094,18 +1283,59 @@ def analyze_student(
         questions_analyzed_llm = []
         solved_qids = []
         attempted_qids = []
-        for qid, q_subs in student_q_timeline.items():
-            timeline_res = analyzer.analyze_student_problem_timeline(
-                q_subs, 
-                diff_summarizer=lambda c1, c2: llm_client.summarize_code_change(c1, c2, custom_api_key=api_key_to_use)
-            )
-            meta = problems_metadata.get(qid, {})
-            timeline_res["title"] = meta.get("title", f"Problem {qid}")
-            timeline_res["description"] = meta.get("description", "No description provided.")
-            questions_analyzed_llm.append(timeline_res)
-            attempted_qids.append(qid)
-            if timeline_res["solved"]:
-                solved_qids.append(qid)
+        
+        all_qids = sorted(problem_groups.keys(), key=lambda x: int(x) if x.isdigit() else x)
+        for qid in all_qids:
+            q_subs = student_q_timeline.get(qid, [])
+            total_tc = question_total_test_cases.get(qid, 1)
+            
+            if q_subs:
+                timeline_res = analyzer.analyze_student_problem_timeline(
+                    q_subs, 
+                    diff_summarizer=lambda c1, c2: llm_client.summarize_code_change(c1, c2, custom_api_key=api_key_to_use),
+                    total_test_cases=total_tc
+                )
+                meta = problems_metadata.get(qid, {})
+                timeline_res["title"] = meta.get("title", f"Problem {qid}")
+                timeline_res["description"] = meta.get("description", "No description provided.")
+                timeline_res["total_test_cases"] = total_tc
+                if "constraints" in meta:
+                    timeline_res["constraints"] = meta["constraints"]
+                if "optimal_approach" in meta:
+                    timeline_res["optimal_approach"] = meta["optimal_approach"]
+                if "resources" in meta:
+                    timeline_res["resources"] = meta["resources"]
+                questions_analyzed_llm.append(timeline_res)
+                attempted_qids.append(qid)
+                if timeline_res["solved"]:
+                    solved_qids.append(qid)
+            else:
+                # Student did not attempt this question
+                meta = problems_metadata.get(qid, {})
+                timeline_res = {
+                    "question_id": int(qid) if qid.isdigit() else qid,
+                    "title": meta.get("title", f"Problem {qid}"),
+                    "description": meta.get("description", "No description provided."),
+                    "total_attempts": 0,
+                    "solved": False,
+                    "best_attempt_index": 0,
+                    "best_status": "Not Attempted",
+                    "best_tests_passed": 0,
+                    "total_test_cases": total_tc,
+                    "first_attempt_code": "",
+                    "final_attempt_code": "",
+                    "best_attempt_code": "",
+                    "timeline_summary": "Not Attempted",
+                    "transitions_count": 0,
+                    "attempts": []
+                }
+                if "constraints" in meta:
+                    timeline_res["constraints"] = meta["constraints"]
+                if "optimal_approach" in meta:
+                    timeline_res["optimal_approach"] = meta["optimal_approach"]
+                if "resources" in meta:
+                    timeline_res["resources"] = meta["resources"]
+                questions_analyzed_llm.append(timeline_res)
                 
         # Call OpenAI for student feedback
         feedback = llm_client.analyze_student_feedback(email, questions_analyzed_llm, custom_api_key=api_key_to_use, raise_on_error=True)
@@ -1122,6 +1352,7 @@ def analyze_student(
             "total_submissions": len(s_subs),
             "solved_count": len(solved_qids),
             "attempted_count": len(attempted_qids),
+            "total_questions": len(problem_groups),
             "solved_questions": solved_qids,
             "attempted_questions": attempted_qids,
             "feedback": feedback,
@@ -1365,7 +1596,6 @@ def generate_student_email_html(student, contest_name, body_prefix="", body_suff
     attempted_count = student.get("attempted_count", 0)
     total_submissions = student.get("total_submissions", 0)
     
-    solve_rate = round((solved_count / attempted_count) * 100, 1) if attempted_count > 0 else 0
     current_year = datetime.now().year
     
     # 1. Fetch total questions in contest from summary.json if available
@@ -1380,7 +1610,9 @@ def generate_student_email_html(student, contest_name, body_prefix="", body_suff
             except Exception:
                 pass
     if not total_questions:
-        total_questions = max(1, len(student.get("attempts_details", [])))
+        total_questions = student.get("total_questions") or max(1, len(student.get("attempts_details", [])))
+        
+    solve_rate = round((solved_count / total_questions) * 100, 1) if total_questions > 0 else 0
         
     # 2. Compute Overall Score & Max Score
     overall_score = 0
@@ -1389,7 +1621,10 @@ def generate_student_email_html(student, contest_name, body_prefix="", body_suff
             overall_score += 100
         else:
             best_passed = detail.get("best_tests_passed", 0)
-            if best_passed > 0:
+            total_tc = detail.get("total_test_cases", 0)
+            if total_tc > 0:
+                overall_score += (best_passed / total_tc) * 100
+            elif best_passed > 0:
                 overall_score += min(75, 15 + best_passed * 3)
             else:
                 overall_score += 10
@@ -1453,7 +1688,7 @@ def generate_student_email_html(student, contest_name, body_prefix="", body_suff
     acc_lbl, acc_bg, acc_fg = get_rating_label_and_colors(solve_rate, [90, 75, 50])
     
     # Problems Solved Badge
-    solved_ratio = (solved_count / attempted_count) * 100 if attempted_count > 0 else 0
+    solved_ratio = (solved_count / total_questions) * 100 if total_questions > 0 else 0
     solved_lbl, solved_bg, solved_fg = get_rating_label_and_colors(solved_ratio, [90, 75, 50])
     
     # Avg Time Badge
@@ -1711,7 +1946,7 @@ def generate_student_email_html(student, contest_name, body_prefix="", body_suff
                                                 </tr>
                                                 <tr>
                                                     <td align="left" style="font-size: 16px; font-weight: 800; color: #0f172a; line-height: 1.2;">
-                                                        {solved_count} <span style="font-size: 10px; font-weight: 500; color: #64748b;">/ {attempted_count}</span>
+                                                        {solved_count} <span style="font-size: 10px; font-weight: 500; color: #64748b;">/ {total_questions}</span>
                                                     </td>
                                                 </tr>
                                                 <tr>
@@ -2174,7 +2409,15 @@ def main():
         print(f"\n📁 Syncing data/contests/ ...")
         success1, msg1 = s3.sync_directory("data/contests", "data/contests", direction=args.direction)
         
-        # 2. Sync reports/contests
+        # 2. Sync problems_metadata.json
+        print(f"\n📄 Syncing data/problems_metadata.json ...")
+        if args.direction == "push":
+            success_meta = s3.upload_file("data/problems_metadata.json", "data/problems_metadata.json")
+        else:
+            # Check if file exists on S3 before downloading, or download directly (download_file handles error gracefully)
+            success_meta = s3.download_file("data/problems_metadata.json", "data/problems_metadata.json")
+        
+        # 3. Sync reports/contests
         print(f"\n📁 Syncing reports/contests/ ...")
         success2, msg2 = s3.sync_directory("reports/contests", "reports/contests", direction=args.direction)
         

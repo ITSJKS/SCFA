@@ -66,11 +66,13 @@ def generate_mock_feedback(student_email, questions_data):
     question_feedback = {}
     for q in questions_data:
         qid = str(q["question_id"])
-        solved_str = "solved" if q["solved"] else "attempted but did not solve"
+        total_attempts = q.get("total_attempts", 0)
+        solved_str = "solved" if q["solved"] else ("did not attempt" if total_attempts == 0 else "attempted but did not solve")
+        
         question_feedback[qid] = {
-          "summary": f"Analyzed {q['total_attempts']} attempts locally. Student {solved_str} the problem.",
-          "critique": f"Local metrics show {q['total_attempts']} attempts. Best test cases passed: {q['best_tests_passed']}. Configure OPENAI_API_KEY to get detailed code critique.",
-          "score_rating": "Completed" if q["solved"] else "Needs Review"
+          "summary": f"Analyzed {total_attempts} attempts locally. Student {solved_str} the problem.",
+          "critique": f"Local metrics show {total_attempts} attempts. Best test cases passed: {q['best_tests_passed']}/{q.get('total_test_cases', 1)}. Configure OPENAI_API_KEY to get detailed code critique.",
+          "score_rating": "Completed" if q["solved"] else ("Not Attempted" if total_attempts == 0 else "Needs Review")
         }
         
     return {
@@ -80,7 +82,7 @@ def generate_mock_feedback(student_email, questions_data):
         "question_feedback": question_feedback
     }
 
-def analyze_student_feedback(student_email, questions_data, custom_api_key=None, raise_on_error=False):
+def analyze_student_feedback(student_email, questions_data, custom_api_key=None, raise_on_error=False, existing_feedback=None):
     """
     Sends the student's problem attempts data to OpenAI to generate personalized feedback.
     """
@@ -91,7 +93,7 @@ def analyze_student_feedback(student_email, questions_data, custom_api_key=None,
         # Graceful fallback if OpenAI is not configured
         return generate_mock_feedback(student_email, questions_data)
         
-    prompt = build_student_feedback_prompt(student_email, questions_data)
+    prompt = build_student_feedback_prompt(student_email, questions_data, existing_feedback)
     
     try:
         response = client.chat.completions.create(
