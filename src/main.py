@@ -2239,7 +2239,15 @@ def main():
         print(f"\n📁 Syncing data/contests/ ...")
         success1, msg1 = s3.sync_directory("data/contests", "data/contests", direction=args.direction)
         
-        # 2. Sync reports/contests
+        # 2. Sync problems_metadata.json
+        print(f"\n📄 Syncing data/problems_metadata.json ...")
+        if args.direction == "push":
+            success_meta = s3.upload_file("data/problems_metadata.json", "data/problems_metadata.json")
+        else:
+            # Check if file exists on S3 before downloading, or download directly (download_file handles error gracefully)
+            success_meta = s3.download_file("data/problems_metadata.json", "data/problems_metadata.json")
+        
+        # 3. Sync reports/contests
         print(f"\n📁 Syncing reports/contests/ ...")
         success2, msg2 = s3.sync_directory("reports/contests", "reports/contests", direction=args.direction)
         
