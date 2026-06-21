@@ -1626,215 +1626,195 @@ export default function App() {
       {/* Upload Settings Modal */}
       {uploadModal.isOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-panelBgSolid border border-panelBorder rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-headerBg px-6 py-4 flex justify-between items-center border-b border-panelBorder">
-              <h2 className="text-base font-extrabold text-textPrimary uppercase tracking-wider">Upload & Group Contest</h2>
-              <button 
+          <div className="w-full max-w-lg bg-panelBgSolid border border-panelBorder rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="bg-headerBg px-5 py-3.5 flex justify-between items-center border-b border-panelBorder">
+              <h2 className="text-sm font-extrabold text-textPrimary uppercase tracking-wider">Upload &amp; Configure Contest</h2>
+              <button
                 onClick={() => setUploadModal(prev => ({ ...prev, isOpen: false }))}
                 className="text-textSecondary hover:text-textPrimary transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4.5 h-4.5" />
               </button>
             </div>
-            
-            <div className="p-6 flex flex-col gap-4">
-              <div className="bg-bgSurfaceInput border border-panelBorder p-3 rounded-lg text-sm leading-normal">
-                <span className="font-bold text-textSecondary">Selected File:</span>{' '}
-                <span className="font-mono text-textPrimary break-all">{uploadModal.fileName}</span>
+
+            <div className="p-5 flex flex-col gap-3 max-h-[80vh] overflow-y-auto">
+
+              {/* File name pill */}
+              <div className="flex items-center gap-2 bg-bgSurfaceInput border border-panelBorder px-3 py-2 rounded-lg">
+                <Upload className="w-3.5 h-3.5 text-accentCyan shrink-0" />
+                <span className="text-xs font-mono text-textPrimary truncate">{uploadModal.fileName}</span>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Assessment Type</label>
-                <select
-                  value={uploadModal.uploadType}
-                  onChange={(e) => setUploadModal(prev => ({ ...prev, uploadType: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
-                >
-                  <option value="oa" className="bg-panelBgSolid text-textPrimary">📝 Online Assessment (OA) Submissions</option>
-                  <option value="mock" className="bg-panelBgSolid text-textPrimary">🤖 AI Mock Interview Results</option>
-                </select>
-              </div>
-
-              <div className="flex gap-4 p-1 bg-bgSurfaceInput border border-panelBorder rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => setUploadModal(prev => ({ 
-                    ...prev, 
-                    isUpdateMode: false,
-                    contestName: prev.defaultContestName || ''
-                  }))}
-                  className={`flex-1 py-1.5 text-xs font-extrabold rounded-md uppercase tracking-wider transition-all cursor-pointer ${!uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg shadow-md' : 'text-textSecondary hover:text-textPrimary'}`}
-                >
-                  🆕 Create New
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const firstContest = contestsList[0];
-                    setUploadModal(prev => ({ 
-                      ...prev, 
-                      isUpdateMode: true,
-                      selectedContestKey: firstContest ? firstContest.contest_key : '',
-                      contestName: firstContest ? firstContest.contest_name : '',
-                      programSelect: firstContest ? (firstContest.program_name || 'General Contests') : 'General Contests'
-                    }));
-                  }}
-                  className={`flex-1 py-1.5 text-xs font-extrabold rounded-md uppercase tracking-wider transition-all cursor-pointer ${uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg shadow-md' : 'text-textSecondary hover:text-textPrimary'}`}
-                >
-                  🔄 Update Existing
-                </button>
-              </div>
-
-              {uploadModal.isUpdateMode ? (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Select to Update</label>
+              {/* Row 1: Type + Mode toggle */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Assessment Type */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Type</label>
                   <select
-                    value={uploadModal.selectedContestKey}
-                    onChange={(e) => {
-                      const selected = contestsList.find(c => c.contest_key === e.target.value);
-                      if (selected) {
-                        setUploadModal(prev => ({
-                          ...prev,
-                          selectedContestKey: selected.contest_key,
-                          contestName: selected.contest_name,
-                          programSelect: selected.program_name || 'General Contests'
-                        }));
-                      }
-                    }}
-                    className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
+                    value={uploadModal.uploadType}
+                    onChange={(e) => setUploadModal(prev => ({ ...prev, uploadType: e.target.value }))}
+                    className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
                   >
-                    {contestsList.filter(c => (uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)).map(c => (
-                      <option key={c.contest_key} value={c.contest_key} className="bg-panelBgSolid text-textPrimary">
-                        {c.contest_name} ({c.program_name || 'General Contests'})
-                      </option>
-                    ))}
-                    {contestsList.filter(c => (uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)).length === 0 && (
-                      <option value="" disabled className="bg-panelBgSolid text-textMuted">No existing matches found</option>
-                    )}
+                    <option value="oa" className="bg-panelBgSolid text-textPrimary">📝 OA Submissions</option>
+                    <option value="mock" className="bg-panelBgSolid text-textPrimary">🤖 AI Mock Results</option>
                   </select>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Name</label>
-                  <input
-                    type="text"
-                    value={uploadModal.contestName}
-                    onChange={(e) => setUploadModal(prev => ({ ...prev, contestName: e.target.value }))}
-                    placeholder="e.g. Placement Contest 5"
-                    className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none transition-all"
-                  />
-                </div>
-              )}
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Program / Cohort Group</label>
-                <select
-                  value={uploadModal.programSelect}
-                  disabled={uploadModal.isUpdateMode}
-                  onChange={(e) => setUploadModal(prev => ({ ...prev, programSelect: e.target.value }))}
-                  className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {uniquePrograms.filter(p => p !== 'All').map(p => (
-                    <option key={p} value={p} className="bg-panelBgSolid text-textPrimary">{p}</option>
-                  ))}
-                  {!uniquePrograms.includes('General Contests') && <option value="General Contests" className="bg-panelBgSolid text-textPrimary">General Contests</option>}
-                  <option value="__NEW__" className="bg-panelBgSolid text-textPrimary">➕ Create New Program...</option>
-                </select>
+                {/* Create / Update toggle */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Mode</label>
+                  <div className="flex gap-1.5 p-0.5 bg-bgSurfaceInput border border-panelBorder rounded-lg h-[34px]">
+                    <button
+                      type="button"
+                      onClick={() => setUploadModal(prev => ({ ...prev, isUpdateMode: false, contestName: prev.defaultContestName || '' }))}
+                      className={`flex-1 text-[10px] font-extrabold rounded uppercase tracking-wider transition-all cursor-pointer ${!uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg' : 'text-textSecondary hover:text-textPrimary'}`}
+                    >🆕 New</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fc = contestsList[0];
+                        setUploadModal(prev => ({ ...prev, isUpdateMode: true, selectedContestKey: fc?.contest_key || '', contestName: fc?.contest_name || '', programSelect: fc?.program_name || 'General Contests' }));
+                      }}
+                      className={`flex-1 text-[10px] font-extrabold rounded uppercase tracking-wider transition-all cursor-pointer ${uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg' : 'text-textSecondary hover:text-textPrimary'}`}
+                    >🔄 Update</button>
+                  </div>
+                </div>
               </div>
 
+              {/* Row 2: Contest name / select + Program */}
+              <div className="grid grid-cols-2 gap-3">
+                {uploadModal.isUpdateMode ? (
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Contest to Update</label>
+                    <select
+                      value={uploadModal.selectedContestKey}
+                      onChange={(e) => {
+                        const sel = contestsList.find(c => c.contest_key === e.target.value);
+                        if (sel) setUploadModal(prev => ({ ...prev, selectedContestKey: sel.contest_key, contestName: sel.contest_name, programSelect: sel.program_name || 'General Contests' }));
+                      }}
+                      className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer"
+                    >
+                      {contestsList.filter(c => (uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)).map(c => (
+                        <option key={c.contest_key} value={c.contest_key} className="bg-panelBgSolid">{c.contest_name} ({c.program_name || 'General'})</option>
+                      ))}
+                      {contestsList.filter(c => (uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)).length === 0 && (
+                        <option value="" disabled className="text-textMuted">No existing matches</option>
+                      )}
+                    </select>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Contest Name</label>
+                      <input
+                        type="text"
+                        value={uploadModal.contestName}
+                        onChange={(e) => setUploadModal(prev => ({ ...prev, contestName: e.target.value }))}
+                        placeholder="e.g. OA Contest 5"
+                        className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Program</label>
+                      <select
+                        value={uploadModal.programSelect}
+                        onChange={(e) => setUploadModal(prev => ({ ...prev, programSelect: e.target.value }))}
+                        className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer"
+                      >
+                        {uniquePrograms.filter(p => p !== 'All').map(p => <option key={p} value={p} className="bg-panelBgSolid">{p}</option>)}
+                        {!uniquePrograms.includes('General Contests') && <option value="General Contests" className="bg-panelBgSolid">General Contests</option>}
+                        <option value="__NEW__" className="bg-panelBgSolid">➕ New Program…</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* New program input */}
               {uploadModal.programSelect === '__NEW__' && (
-                <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-150">
-                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">New Program Name</label>
+                <div className="flex flex-col gap-1 animate-in slide-in-from-top-2 duration-150">
+                  <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">New Program Name</label>
                   <input
                     type="text"
                     value={uploadModal.newProgramName}
                     onChange={(e) => setUploadModal(prev => ({ ...prev, newProgramName: e.target.value }))}
                     placeholder="e.g. Winter Bootcamp 2026"
-                    className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none transition-all"
+                    className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none"
                   />
                 </div>
               )}
 
-              {/* Optional Problems Details File */}
+              {/* OA-only compact options */}
               {uploadModal.uploadType === 'oa' && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">
-                    Optional: Problems Details JSON (problem.json)
-                  </label>
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={async (e) => {
-                      if (e.target.files.length > 0) {
-                        const file = e.target.files[0];
-                        const text = await file.text();
-                        setUploadModal(prev => ({
-                          ...prev,
-                          problemsFileName: file.name,
-                          problemsFileText: text
-                        }));
-                      }
-                    }}
-                    className="w-full px-3 py-2 text-xs bg-bgSurfaceInput border border-panelBorder hover:border-textSecondary rounded-lg text-textPrimary outline-none cursor-pointer file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-extrabold file:uppercase file:bg-accentCyan/20 file:text-accentCyan hover:file:bg-accentCyan/30 file:cursor-pointer transition-all"
-                  />
-                  {uploadModal.problemsFileName && (
-                    <span className="text-[10px] text-accentCyan font-mono mt-0.5 break-all">
-                      📎 Loaded: {uploadModal.problemsFileName}
-                    </span>
-                  )}
-                </div>
-              )}
+                <div className="bg-bgSurfaceInput border border-panelBorder rounded-xl p-3 flex flex-col gap-2.5">
+                  <div className="grid grid-cols-2 gap-3 items-end">
+                    {/* Problems JSON */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">
+                        Problems JSON <span className="text-textMuted font-medium normal-case">(optional)</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 px-2.5 py-2 bg-bgSurfaceActive border border-panelBorder hover:border-accentCyan/60 rounded-lg cursor-pointer transition-all group">
+                        <Upload className="w-3 h-3 text-accentCyan/50 group-hover:text-accentCyan shrink-0" />
+                        <span className="text-[11px] text-textMuted group-hover:text-textSecondary truncate">
+                          {uploadModal.problemsFileName ? <span className="text-accentCyan">✓ {uploadModal.problemsFileName}</span> : 'Browse problem.json'}
+                        </span>
+                        <input type="file" accept=".json" className="hidden"
+                          onChange={async (e) => {
+                            if (e.target.files.length > 0) {
+                              const file = e.target.files[0];
+                              const text = await file.text();
+                              setUploadModal(prev => ({ ...prev, problemsFileName: file.name, problemsFileText: text }));
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
 
-              {/* Checkbox: Run AI Critique */}
-              {uploadModal.uploadType === 'oa' && (
-                <div className="flex flex-col gap-2 bg-bgSurfaceInput border border-panelBorder p-3.5 rounded-lg">
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={runAiUpload}
-                      disabled={user.role === 'faculty' && !openaiKey}
-                      onChange={(e) => setRunAiUpload(e.target.checked)}
-                      className="w-4 h-4 rounded text-accentCyan focus:ring-accentCyan border-panelBorder cursor-pointer accent-accentCyan disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <span className={`text-sm font-extrabold ${user.role === 'faculty' && !openaiKey ? 'text-textMuted' : 'text-textPrimary'}`}>
-                      Run AI Critique on Upload
-                    </span>
-                  </label>
-                  {user.role === 'faculty' && !openaiKey && (
-                    <p className="text-[11px] text-accentOrange leading-normal font-semibold">
-                      ⚠️ You must configure your personal OpenAI API Key in Settings (key icon in header) to run AI critiques. Uploading will run in <strong>dry-run mode</strong> (local metrics calculation only).
-                    </p>
-                  )}
-                  {user.role === 'admin' && (
-                    <p className="text-[11px] text-textMuted leading-normal font-semibold">
-                      Admin analysis will run using the server's global OpenAI API key.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {uploadModal.uploadType === 'oa' && runAiUpload && (
-                <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-150">
-                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">AI Cost Threshold Limit (USD)</label>
-                  <div className="flex items-center gap-3 bg-bgSurfaceInput border border-panelBorder p-3 rounded-lg">
-                    <span className="text-sm font-semibold text-accentCyan">$</span>
-                    <input
-                      type="number"
-                      value={uploadModal.costLimit}
-                      onChange={(e) => setUploadModal(prev => ({ ...prev, costLimit: parseFloat(e.target.value) || 0.50 }))}
-                      step="0.05"
-                      min="0.01"
-                      className="w-20 bg-bgSurfaceActive border border-panelBorder px-2.5 py-1.5 text-sm rounded outline-none text-textPrimary font-mono font-bold focus:border-accentCyan"
-                    />
-                    <span className="text-[10px] text-textMuted leading-normal">
-                      Analysis pauses and saves checkpoint when OpenAI API costs exceed this amount.
-                    </span>
+                    {/* AI Critique toggle */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">AI Critique</label>
+                      <label className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all select-none ${runAiUpload && !(user.role === 'faculty' && !openaiKey) ? 'border-accentCyan/40 bg-accentCyan/5' : 'border-panelBorder bg-bgSurfaceActive'} ${user.role === 'faculty' && !openaiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={runAiUpload}
+                          disabled={user.role === 'faculty' && !openaiKey}
+                          onChange={(e) => setRunAiUpload(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded accent-accentCyan disabled:cursor-not-allowed"
+                        />
+                        <span className={`text-xs font-bold ${runAiUpload && !(user.role === 'faculty' && !openaiKey) ? 'text-accentCyan' : 'text-textSecondary'}`}>
+                          {runAiUpload ? 'Enabled' : 'Skip AI'}
+                        </span>
+                      </label>
+                      {user.role === 'faculty' && !openaiKey
+                        ? <span className="text-[10px] text-accentOrange font-semibold">⚠️ Set key in Settings</span>
+                        : user.role === 'admin'
+                          ? <span className="text-[10px] text-textMuted">Uses server key</span>
+                          : null}
+                    </div>
                   </div>
+
+                  {/* Cost limit row */}
+                  {runAiUpload && (
+                    <div className="flex items-center gap-2.5 pt-2 border-t border-panelBorder/40 animate-in slide-in-from-top-2 duration-150">
+                      <span className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider whitespace-nowrap">Cost Limit</span>
+                      <span className="text-sm font-semibold text-accentCyan">$</span>
+                      <input
+                        type="number"
+                        value={uploadModal.costLimit}
+                        onChange={(e) => setUploadModal(prev => ({ ...prev, costLimit: parseFloat(e.target.value) || 0.50 }))}
+                        step="0.05" min="0.01"
+                        className="w-20 bg-bgSurfaceActive border border-panelBorder px-2.5 py-1.5 text-sm rounded outline-none text-textPrimary font-mono font-bold focus:border-accentCyan"
+                      />
+                      <span className="text-[10px] text-textMuted">Pauses &amp; saves if exceeded</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            <div className="bg-headerBg px-6 py-4 border-t border-panelBorder flex justify-end gap-3.5">
+            {/* Footer always visible */}
+            <div className="bg-headerBg px-5 py-3.5 border-t border-panelBorder flex justify-end gap-3">
               <button
                 onClick={() => setUploadModal(prev => ({ ...prev, isOpen: false }))}
                 className="px-4 py-2 border border-panelBorder text-textSecondary hover:text-textPrimary rounded-lg text-sm font-bold transition-colors cursor-pointer"
@@ -1843,9 +1823,9 @@ export default function App() {
               </button>
               <button
                 onClick={handleUploadSubmit}
-                className="flex items-center gap-1.5 px-4 py-2 bg-accentCyan hover:bg-accentCyan/80 text-darkBg rounded-lg text-sm font-bold shadow-glow transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-5 py-2 bg-accentCyan hover:bg-accentCyan/80 text-darkBg rounded-lg text-sm font-bold shadow-glow transition-all cursor-pointer"
               >
-                <BarChart2 className="w-4.5 h-4.5" />
+                <BarChart2 className="w-4 h-4" />
                 <span>Start Analysis</span>
               </button>
             </div>
