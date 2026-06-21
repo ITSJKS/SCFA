@@ -452,6 +452,34 @@ export default function StudentPortal({
                 {/* Accordion Body */}
                 {isOpen && (
                   <div className="px-4.5 pb-4.5 pt-1 border-t border-panelBorder/30 bg-darkBg/10 flex flex-col gap-4">
+                    {/* AI Critique or Hint card */}
+                    {q._unattempted ? (
+                      /* ── Unattempted: show How-to-Solve hint ── */
+                      <div className="flex flex-col gap-3">
+                        {q.problem_description && (
+                          <div className="bg-bgSurfaceInput border border-panelBorder rounded-xl p-4 flex flex-col gap-1.5">
+                            <span className="text-[9px] font-bold text-textMuted uppercase tracking-wider">Problem Statement</span>
+                            <p className="text-xs text-textSecondary leading-relaxed">{q.problem_description}</p>
+                            {q.problem_constraints && (
+                              <p className="text-[10px] text-textMuted italic mt-0.5">Constraints: {q.problem_constraints}</p>
+                            )}
+                          </div>
+                        )}
+                        {q.optimal_approach && (
+                          <div className="bg-accentGreen/[0.04] border-l-2 border-accentGreen p-4 rounded-r-xl flex flex-col gap-1.5 shadow-inner">
+                            <span className="text-[9px] font-bold text-accentGreen uppercase tracking-wider">💡 Optimal Approach</span>
+                            <p className="text-xs text-textPrimary leading-relaxed font-medium">{q.optimal_approach}</p>
+                            {q.resources && (
+                              <p className="text-[10px] text-textMuted italic mt-0.5">Topics: {q.resources}</p>
+                            )}
+                          </div>
+                        )}
+                        {!q.optimal_approach && !q.problem_description && (
+                          <p className="text-xs text-textMuted italic py-2 text-center">No hints available for this problem.</p>
+                        )}
+                      </div>
+                    ) : (
+                      <>
                     {/* Problem AI Critique Card */}
                     <div className="bg-accentCyan/[0.01] border-l-2 border-accentCyan p-4.5 rounded-r-lg flex flex-col gap-1 shadow-inner">
                       <span className="text-[9px] font-bold text-textMuted uppercase tracking-wider">AI Code Critique</span>
@@ -536,6 +564,8 @@ export default function StudentPortal({
                         })
                       )}
                     </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

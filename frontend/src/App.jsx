@@ -359,6 +359,64 @@ export default function App() {
       if (!res.ok) throw new Error('Contest report not found');
       const data = await res.json();
       if (latestRequestedContestKeyRef.current === key) {
+        // Normalize problem metadata into each student's attempts_details
+        const problemsMeta = data.problems_metadata || data.problems || {};
+        if (data.students && Object.keys(problemsMeta).length > 0) {
+          Object.values(data.students).forEach(student => {
+            // Build set of question IDs this student has attempted
+            const attemptedQids = new Set(
+              (student.attempts_details || []).map(d => String(d.question_id))
+            );
+            // 1. Normalise problem_title -> title on existing attempts
+            (student.attempts_details || []).forEach(detail => {
+              const qid = String(detail.question_id);
+              const meta = problemsMeta[qid] || {};
+              if (!detail.title && (detail.problem_title || meta.title)) {
+                detail.title = detail.problem_title || meta.title;
+              }
+              if (!detail.optimal_approach && meta.optimal_approach) {
+                detail.optimal_approach = meta.optimal_approach;
+              }
+              if (!detail.problem_description && meta.description) {
+                detail.problem_description = meta.description;
+              }
+              if (!detail.problem_constraints && meta.constraints) {
+                detail.problem_constraints = meta.constraints;
+              }
+              if (!detail.resources && meta.resources) {
+                detail.resources = meta.resources;
+              }
+            });
+            // 2. Inject stubs for unattempted problems
+            if (!student.attempts_details) student.attempts_details = [];
+            Object.entries(problemsMeta).forEach(([qid, meta]) => {
+              if (!attemptedQids.has(String(qid))) {
+                student.attempts_details.push({
+                  question_id: parseInt(qid),
+                  title: meta.title || `Problem #${qid}`,
+                  total_attempts: 0,
+                  solved: false,
+                  best_tests_passed: 0,
+                  total_test_cases: 0,
+                  best_attempt_index: 0,
+                  timeline_summary: '',
+                  first_attempt_code: null,
+                  final_attempt_code: null,
+                  optimal_approach: meta.optimal_approach || '',
+                  problem_description: meta.description || '',
+                  problem_constraints: meta.constraints || '',
+                  resources: meta.resources || '',
+                  _unattempted: true
+                });
+              }
+            });
+            // Sort: attempted first, then unattempted, both by question_id
+            student.attempts_details.sort((a, b) => {
+              if (a._unattempted !== b._unattempted) return a._unattempted ? 1 : -1;
+              return a.question_id - b.question_id;
+            });
+          });
+        }
         setAppData(data);
         setActiveStudentEmail(null); // Reset active student
         if (data.metadata?.is_mock && activeTab === 'problems') {
