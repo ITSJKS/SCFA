@@ -968,9 +968,8 @@ export default function App() {
 
         if (fileInputRef.current) fileInputRef.current.value = '';
         showToast('Uploaded and processed AI Mock results successfully!', 'success');
-        
-        await loadContestsList();
-        setActiveContestKey(data.contest_key);
+
+        await fetchContests(data.contest_key);
         return;
       }
 
@@ -1008,6 +1007,7 @@ export default function App() {
       localStorage.setItem('activeAnalysisCostLimit', costLimit);
       localStorage.setItem('activeAnalysisName', cleanContestName);
 
+      await fetchContests(data.contest_key);
       startStatusPolling(data.contest_key, costLimit, cleanContestName);
     } catch (err) {
       console.error(err);
@@ -1058,6 +1058,9 @@ export default function App() {
     if (selectedProgram === 'All') return true;
     return (c.program_name || 'General Contests') === selectedProgram;
   });
+  // Filters contestsList to only those matching the current upload type (mock vs OA)
+  const contestsForUploadType = (uploadType) =>
+    contestsList.filter(c => uploadType === 'mock' ? c.is_mock : !c.is_mock);
 
   if (!user) {
     return (
@@ -1673,8 +1676,8 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => {
-                        const fc = contestsList[0];
-                        setUploadModal(prev => ({ ...prev, isUpdateMode: true, selectedContestKey: fc?.contest_key || '', contestName: fc?.contest_name || '', programSelect: fc?.program_name || 'General Contests' }));
+                        const fc = contestsList.filter(c => uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)[0];
+                        setUploadModal(prev => ({ ...prev, isUpdateMode: true, selectedContestKey: fc?.key || '', contestName: fc?.contest_name || '', programSelect: fc?.program_name || 'General Contests' }));
                       }}
                       className={`flex-1 text-[10px] font-extrabold rounded uppercase tracking-wider transition-all cursor-pointer ${uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg' : 'text-textSecondary hover:text-textPrimary'}`}
                     >🔄 Update</button>
@@ -1690,13 +1693,13 @@ export default function App() {
                     <select
                       value={uploadModal.selectedContestKey}
                       onChange={(e) => {
-                        const sel = contestsList.find(c => c.contest_key === e.target.value);
-                        if (sel) setUploadModal(prev => ({ ...prev, selectedContestKey: sel.contest_key, contestName: sel.contest_name, programSelect: sel.program_name || 'General Contests' }));
+                        const sel = contestsList.find(c => c.key === e.target.value);
+                        if (sel) setUploadModal(prev => ({ ...prev, selectedContestKey: sel.key, contestName: sel.contest_name, programSelect: sel.program_name || 'General Contests' }));
                       }}
                       className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer"
                     >
                       {contestsForUploadType(uploadModal.uploadType).map(c => (
-                        <option key={c.contest_key} value={c.contest_key} className="bg-panelBgSolid">{c.contest_name} ({c.program_name || 'General'})</option>
+                        <option key={c.key} value={c.key} className="bg-panelBgSolid">{c.contest_name} ({c.program_name || 'General'})</option>
                       ))}
                       {contestsForUploadType(uploadModal.uploadType).length === 0 && (
                         <option value="" disabled className="text-textMuted">No existing matches</option>
