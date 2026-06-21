@@ -802,7 +802,8 @@ def get_contests(current_user: dict = Depends(get_current_user)):
                                 "analyzed_at": metadata.get("analyzed_at", ""),
                                 "total_students": metadata.get("total_students", 0),
                                 "total_questions": metadata.get("total_questions", 0),
-                                "total_submissions": metadata.get("total_submissions", 0)
+                                "total_submissions": metadata.get("total_submissions", 0),
+                                "is_mock": metadata.get("is_mock", False)
                             })
                     except Exception as e:
                         print(f"Error reading summary for contest {folder}: {e}")
@@ -846,12 +847,14 @@ def get_progress(program: str = Query("All"), current_user: dict = Depends(get_c
         c_key = meta.get("contest_key")
         c_name = meta.get("contest_name")
         total_questions = len(data.get("problems", {}))
+        is_mock = meta.get("is_mock", False)
         
         progress_data["contests"].append({
             "contest_key": c_key,
             "contest_name": c_name,
             "total_questions": total_questions,
-            "analyzed_at": meta.get("analyzed_at", "")
+            "analyzed_at": meta.get("analyzed_at", ""),
+            "is_mock": is_mock
         })
         
         for email, s_info in data.get("students", {}).items():
@@ -861,11 +864,37 @@ def get_progress(program: str = Query("All"), current_user: dict = Depends(get_c
                     "user_id": s_info.get("user_id"),
                     "history": {}
                 }
+                
+            # Compute score/rating percentage
+            if is_mock:
+                score_pct = s_info.get("latest_rating")
+                if score_pct is None:
+                    score_pct = s_info.get("best_rating")
+            else:
+                overall_score = 0
+                student_attempts = s_info.get("attempts_details", [])
+                for detail in student_attempts:
+                    if detail.get("solved"):
+                        overall_score += 100
+                    else:
+                        best_passed = detail.get("best_tests_passed", 0)
+                        total_tc = detail.get("total_test_cases", 0)
+                        if total_tc > 0:
+                            overall_score += (best_passed / total_tc) * 100
+                        elif best_passed > 0:
+                            overall_score += min(75, 15 + best_passed * 3)
+                        else:
+                            overall_score += 10
+                overall_score = int(round(overall_score))
+                max_score = total_questions * 100
+                score_pct = int(round((overall_score / max_score) * 100)) if max_score > 0 else 0
+
             progress_data["students"][email]["history"][c_key] = {
                 "solved_count": s_info.get("solved_count", 0),
                 "attempted_count": s_info.get("attempted_count", 0),
                 "total_questions": s_info.get("total_questions", total_questions),
-                "assignment_id": s_info.get("assignment_id", None)
+                "assignment_id": s_info.get("assignment_id", None),
+                "score_pct": score_pct
             }
             
     return progress_data
@@ -1014,6 +1043,8 @@ async def upload_contest(
     program_name: str = Query(None),
     cost_limit: float = Query(0.50),
     run_ai: bool = Query(True),
+    is_mock: bool = Query(False),
+    is_problems: bool = Query(False),
     x_openai_api_key: str = Header(None),
     current_user: dict = Depends(get_current_user)
 ):
@@ -1030,7 +1061,7 @@ async def upload_contest(
         if contest_name:
             clean_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in contest_name.strip())
             clean_name = "_".join(part for part in clean_name.split('_') if part)
-            if "problem" in filename.lower():
+            if is_problems or "problem" in filename.lower() or "problems" in filename.lower():
                 safe_filename = f"{clean_name}_problems.json"
             else:
                 safe_filename = f"{clean_name}.json"
@@ -1044,7 +1075,7 @@ async def upload_contest(
         with open(file_path, "w") as f:
             f.write(json_text)
             
-        if "problems" in safe_filename:
+        if is_problems or "problems" in safe_filename or "problems" in filename.lower():
             # Sync to S3 if configured
             from src.s3_client import S3SyncClient
             s3 = S3SyncClient()
@@ -1054,6 +1085,89 @@ async def upload_contest(
                 "success": True, 
                 "message": "Problems metadata file uploaded successfully.", 
                 "contest_key": clean_name
+            }
+
+        if is_mock:
+            # Parse mock file
+            attempts = parser.parse_mock_file(file_path)
+            
+            # Group by email
+            student_groups = {}
+            for att in attempts:
+                email = att["email"]
+                if email not in student_groups:
+                    student_groups[email] = []
+                student_groups[email].append(att)
+                
+            students_summary = {}
+            for email, s_attempts in student_groups.items():
+                latest_attempt = s_attempts[-1]
+                valid_ratings = [a["rating"] for a in s_attempts if a["rating"] is not None]
+                best_rating = max(valid_ratings) if valid_ratings else None
+                
+                serialized_attempts = []
+                for a in s_attempts:
+                    serialized_attempts.append({
+                        "one_to_one_id": a["one_to_one_id"],
+                        "o2o_hash": a["o2o_hash"],
+                        "o2o_title": a["o2o_title"],
+                        "start_timestamp": a["start_timestamp_str"],
+                        "rating": a["rating"],
+                        "communication_score": a["communication_score"],
+                        "hr_report_link": a["hr_report_link"],
+                        "verdict": a["verdict"]
+                    })
+                    
+                students_summary[email] = {
+                    "user_id": latest_attempt["user_id"],
+                    "email": email,
+                    "first_name": latest_attempt["first_name"],
+                    "last_name": latest_attempt["last_name"],
+                    "latest_rating": latest_attempt["rating"],
+                    "latest_communication_score": latest_attempt["communication_score"],
+                    "latest_hr_report_link": latest_attempt["hr_report_link"],
+                    "latest_verdict": latest_attempt["verdict"],
+                    "best_rating": best_rating,
+                    "attempts": serialized_attempts
+                }
+                
+            if not contest_name and attempts:
+                contest_name = attempts[0]["o2o_title"]
+            if not contest_name:
+                contest_name = clean_name.replace('_', ' ').replace('-', ' ').strip()
+                
+            report_data = {
+                "metadata": {
+                    "contest_key": clean_name,
+                    "contest_name": contest_name,
+                    "program_name": program_name or "General Mocks",
+                    "source_file": safe_filename,
+                    "analyzed_at": datetime.now().isoformat(),
+                    "total_students": len(students_summary),
+                    "total_attempts": len(attempts),
+                    "is_mock": True
+                },
+                "students": students_summary
+            }
+            
+            output_dir = os.path.join(DEFAULT_REPORT_DIR, "contests", clean_name)
+            os.makedirs(output_dir, exist_ok=True)
+            summary_path = os.path.join(output_dir, "summary.json")
+            
+            with open(summary_path, "w") as f:
+                json.dump(report_data, f, indent=2)
+                
+            # Upload to S3 if configured
+            from src.s3_client import S3SyncClient
+            s3 = S3SyncClient()
+            if s3.is_configured():
+                s3.upload_file(file_path, f"data/contests/{safe_filename}")
+                s3.upload_file(summary_path, f"reports/contests/{clean_name}/summary.json")
+                
+            return {
+                "success": True,
+                "contest_key": clean_name,
+                "message": "AI Mock data uploaded and processed successfully."
             }
 
         # Run the analysis in the background (role-based rules)
@@ -1408,42 +1522,60 @@ def get_contest_summary(contest_key: str, current_user: dict = Depends(get_curre
             data = json.load(f)
 
         # Strip heavy fields from each student's record to reduce payload size
+        is_mock = data.get("metadata", {}).get("is_mock", False)
         students_lite = {}
         for email, s in data.get("students", {}).items():
-            # Build a lightweight attempts_details list (no diff logs, no code bodies)
-            lite_attempts = []
-            for detail in s.get("attempts_details", []):
-                lite_attempts.append({
-                    "question_id": detail.get("question_id"),
-                    "title": detail.get("title"),
-                    "solved": detail.get("solved"),
-                    "total_attempts": detail.get("total_attempts"),
-                    "best_attempt_index": detail.get("best_attempt_index"),
-                    # Keep a minimal history with just status — no source code or diffs
-                    "attempts_history": [
-                        {
-                            "attempt_number": h.get("attempt_number"),
-                            "status_name": h.get("status_name"),
-                            "submitted_at": h.get("submitted_at"),
-                        }
-                        for h in detail.get("attempts_history", [])
-                    ],
-                })
+            if is_mock:
+                students_lite[email] = {
+                    "user_id": s.get("user_id"),
+                    "email": s.get("email"),
+                    "first_name": s.get("first_name"),
+                    "last_name": s.get("last_name"),
+                    "latest_rating": s.get("latest_rating"),
+                    "latest_communication_score": s.get("latest_communication_score"),
+                    "latest_hr_report_link": s.get("latest_hr_report_link"),
+                    "latest_verdict": s.get("latest_verdict"),
+                    "best_rating": s.get("best_rating"),
+                    "attempts": s.get("attempts", []),
+                    "assignment_id": s.get("assignment_id"),
+                    "has_feedback": bool(s.get("feedback") or s.get("custom_feedback")),
+                    "custom_feedback": s.get("custom_feedback"),
+                }
+            else:
+                # Build a lightweight attempts_details list (no diff logs, no code bodies)
+                lite_attempts = []
+                for detail in s.get("attempts_details", []):
+                    lite_attempts.append({
+                        "question_id": detail.get("question_id"),
+                        "title": detail.get("title"),
+                        "solved": detail.get("solved"),
+                        "total_attempts": detail.get("total_attempts"),
+                        "best_attempt_index": detail.get("best_attempt_index"),
+                        # Keep a minimal history with just status — no source code or diffs
+                        "attempts_history": [
+                            {
+                                "attempt_number": h.get("attempt_number"),
+                                "status_name": h.get("status_name"),
+                                "submitted_at": h.get("submitted_at"),
+                            }
+                            for h in detail.get("attempts_history", [])
+                        ],
+                    })
 
-            students_lite[email] = {
-                "user_id": s.get("user_id"),
-                "email": s.get("email"),
-                "assignment_id": s.get("assignment_id"),
-                "total_submissions": s.get("total_submissions"),
-                "solved_count": s.get("solved_count"),
-                "attempted_count": s.get("attempted_count"),
-                "solved_questions": s.get("solved_questions"),
-                "attempted_questions": s.get("attempted_questions"),
-                "attempts_details": lite_attempts,
-                # Include a summary of feedback but not the full text
-                "has_feedback": bool(s.get("feedback") or s.get("custom_feedback")),
-                "custom_feedback": s.get("custom_feedback"),
-            }
+                students_lite[email] = {
+                    "user_id": s.get("user_id"),
+                    "email": s.get("email"),
+                    "assignment_id": s.get("assignment_id"),
+                    "total_submissions": s.get("total_submissions"),
+                    "solved_count": s.get("solved_count"),
+                    "attempted_count": s.get("attempted_count"),
+                    "solved_questions": s.get("solved_questions"),
+                    "attempted_questions": s.get("attempted_questions"),
+                    "attempts_details": lite_attempts,
+                    # Include a summary of feedback but not the full text
+                    "has_feedback": bool(s.get("feedback") or s.get("custom_feedback")),
+                    "custom_feedback": s.get("custom_feedback"),
+                }
 
         return {
             "metadata": data.get("metadata", {}),
@@ -1475,6 +1607,30 @@ def get_student_detail(contest_key: str, email: str, current_user: dict = Depend
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read student data: {str(e)}")
+
+
+@app.get("/api/mocks/{mock_key}/students/{email:path}")
+def get_mock_student_detail(mock_key: str, email: str, current_user: dict = Depends(get_current_user)):
+    """
+    Returns the student's AI Mock interview detail including score and feedback link.
+    """
+    validate_contest_key(mock_key)
+    summary_path = os.path.join(DEFAULT_REPORT_DIR, "contests", mock_key, "summary.json")
+    if not os.path.exists(summary_path):
+        raise HTTPException(status_code=404, detail="Mock summary not found.")
+    try:
+        with open(summary_path, "r") as f:
+            data = json.load(f)
+        if not data.get("metadata", {}).get("is_mock", False):
+            raise HTTPException(status_code=400, detail="Requested key is not a mock assessment.")
+        student = data.get("students", {}).get(email)
+        if not student:
+            raise HTTPException(status_code=404, detail=f"Student '{email}' not found in this mock assessment.")
+        return student
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read student mock data: {str(e)}")
 
 @app.post("/api/contests/{contest_key}/students/{email}/feedback")
 def save_student_feedback(
@@ -1598,6 +1754,186 @@ class SendEmailRequest(BaseModel):
     editorial_link: str = ""
 
 def generate_student_email_html(student, contest_name, body_prefix="", body_suffix="", editorial_link="", contest_key=""):
+    if "attempts" in student:
+        email = student.get("email", "")
+        latest_rating = student.get("latest_rating")
+        best_rating = student.get("best_rating")
+        comms_score = student.get("latest_communication_score")
+        latest_verdict = student.get("latest_verdict", "")
+        
+        student_name = "Student"
+        if email:
+            username = email.split('@')[0]
+            normalized = username.replace('.', ' ').replace('_', ' ').replace('-', ' ')
+            parts = [p for p in normalized.split() if p]
+            if parts:
+                first_name = parts[0]
+                if not first_name.isdigit():
+                    student_name = first_name.capitalize()
+                    
+        prefix_html = body_prefix.replace("\n", "<br/>") if body_prefix else ""
+        suffix_html = body_suffix.replace("\n", "<br/>") if body_suffix else ""
+        
+        if not prefix_html:
+            prefix_html = f"Congratulations on completing your AI Mock Interview! We've prepared a summary of your scores and a link to your full interactive feedback report below. Keep pushing forward and refining your skills! 🚀"
+            
+        custom_feedback = student.get("custom_feedback", "").strip()
+        custom_feedback_html = ""
+        if custom_feedback:
+            custom_feedback_html = f"""
+            <div style="background-color: #f0f9ff; border-left: 3px solid #0ea5e9; border-top: 1px solid #e0f2fe; border-bottom: 1px solid #e0f2fe; border-right: 1px solid #e0f2fe; border-radius: 0 8px 8px 0; padding: 18px 20px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+                <h3 style="margin: 0 0 8px 0; color: #0369a1; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px;">✍&nbsp;Instructor Guidance & Custom Notes</h3>
+                <p style="margin: 0; color: #334155; font-size: 13px; line-height: 1.6; font-weight: 500;">{custom_feedback.replace(chr(10), '<br/>')}</p>
+            </div>
+            """
+            
+        attempts_html = ""
+        for i, a in enumerate(student.get("attempts", [])):
+            rating_val = a.get("rating")
+            rating_val_int = 0
+            if rating_val is not None:
+                try:
+                    rating_val_int = int(rating_val)
+                except ValueError:
+                    pass
+            rating_color = "#047857" if rating_val_int >= 70 else ("#b91c1c" if rating_val_int < 50 else "#b45309")
+            verdict_badge = ""
+                
+            report_button = ""
+            if a.get("hr_report_link"):
+                report_button = f"""
+                <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px;">
+                    <tr>
+                        <td align="center" bgcolor="#0ea5e9" style="border-radius: 6px;">
+                            <a href="{a['hr_report_link']}" target="_blank" style="display: inline-block; padding: 8px 16px; font-size: 12px; font-weight: bold; color: #ffffff; text-decoration: none; border: 1px solid #0ea5e9; border-radius: 6px;">
+                                View Interactive Feedback Report &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+                """
+                
+            attempts_html += f"""
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+                <div style="background-color: #f8fafc; padding: 14px 18px; border-bottom: 1px solid #e2e8f0; font-size: 14px; font-weight: bold; color: #0f172a;">
+                    Attempt #{i + 1} {verdict_badge}
+                </div>
+                <div style="padding: 18px; background-color: #ffffff; font-size: 13px;">
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                            <td style="color: #475569; width: 50%; font-size: 13px;">
+                                <strong>Date/Time:</strong> {a.get("start_timestamp", "N/A")}<br/>
+                                <strong>Mock Title:</strong> {a.get("o2o_title", "DSA AI Mock")}
+                            </td>
+                            <td style="color: #475569; width: 50%; font-size: 13px;">
+                                <strong>Rating Score:</strong> <span style="color: {rating_color}; font-weight: bold;">{a.get("rating", "N/A")} / 100</span><br/>
+                                <strong>Communication Score:</strong> <span style="color: #0ea5e9; font-weight: bold;">{a.get("communication_score", "N/A")} / 5</span>
+                            </td>
+                        </tr>
+                    </table>
+                    {report_button}
+                </div>
+            </div>
+            """
+            
+        current_year = datetime.now().year
+        
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Your AI Mock Interview Feedback</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <style>
+                body {{
+                    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    background-color: #f8fafc;
+                    margin: 0;
+                    padding: 0;
+                }}
+            </style>
+        </head>
+        <body style="background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 40px 10px;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                    <td align="center">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            <!-- Header Banner -->
+                            <tr bgcolor="#0ea5e9">
+                                <td style="padding: 30px 40px; text-align: left;">
+                                    <div style="font-size: 11px; text-transform: uppercase; color: #e0f2fe; font-weight: 800; letter-spacing: 1.5px; margin-bottom: 6px;">Evaluation Review</div>
+                                    <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; line-height: 1.2;">{contest_name}</h1>
+                                </td>
+                            </tr>
+                            
+                            <!-- Main Content Area -->
+                            <tr>
+                                <td style="padding: 40px;">
+                                    <!-- Greeting & Intro -->
+                                    <h2 style="margin: 0 0 15px 0; color: #0f172a; font-size: 18px; font-weight: 700; letter-spacing: -0.3px;">Hello {student_name},</h2>
+                                    <p style="margin: 0 0 25px 0; color: #475569; font-size: 14px; line-height: 1.6; font-weight: 500;">
+                                        {prefix_html}
+                                    </p>
+                                    
+                                    <!-- High Level Performance metrics grid -->
+                                    <div style="background-color: #fafbfe; border: 1px solid #f1f5f9; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
+                                        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                            <tr>
+                                                <td align="center" style="width: 33.33%;">
+                                                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Latest Rating</div>
+                                                    <span style="font-size: 22px; font-weight: bold; color: #0f172a;">{latest_rating if latest_rating is not None else 'N/A'}</span>
+                                                </td>
+                                                <td align="center" style="width: 33.33%;">
+                                                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Best Rating</div>
+                                                    <span style="font-size: 22px; font-weight: bold; color: #047857;">{best_rating if best_rating is not None else 'N/A'}</span>
+                                                </td>
+                                                <td align="center" style="width: 33.33%;">
+                                                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Communication</div>
+                                                    <span style="font-size: 22px; font-weight: bold; color: #0ea5e9;">{comms_score if comms_score is not None else 'N/A'}/5</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    
+                                    {custom_feedback_html}
+                                    
+                                    <!-- Attempts Details List -->
+                                    <h3 style="margin: 30px 0 15px 0; font-size: 14px; color: #0f172a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
+                                        Mock Attempts Detail
+                                    </h3>
+                                    
+                                    {attempts_html}
+                                    
+                                    <!-- Suffix and Footer -->
+                                    <div style="font-size: 14px; color: #475569; line-height: 1.6; margin: 25px 0 10px 0;">
+                                        {suffix_html}
+                                    </div>
+                                    
+                                    <p style="margin: 25px 0 0 0; font-size: 13px; color: #475569; font-weight: 600; line-height: 1.5;">
+                                        Best regards,<br/>
+                                        <strong>The Placement Prep Team</strong>
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Footer -->
+                            <tr bgcolor="#f8fafc">
+                                <td style="padding: 25px 40px; border-top: 1px solid #e2e8f0; text-align: center;">
+                                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 500;">&copy; {current_year} PrepToPlace & NST. All rights reserved.</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+
     email = student.get("email", "")
     solved_count = student.get("solved_count", 0)
     attempted_count = student.get("attempted_count", 0)

@@ -86,7 +86,10 @@ export default function App() {
     contestName: '',
     programSelect: 'General Contests',
     newProgramName: '',
-    costLimit: 0.50
+    costLimit: 0.50,
+    uploadType: 'oa',
+    isUpdateMode: false,
+    selectedContestKey: ''
   });
 
   // Toast / Status Message State
@@ -358,6 +361,9 @@ export default function App() {
       if (latestRequestedContestKeyRef.current === key) {
         setAppData(data);
         setActiveStudentEmail(null); // Reset active student
+        if (data.metadata?.is_mock && activeTab === 'problems') {
+          setActiveTab('overview');
+        }
       }
     } catch (err) {
       console.error('Error fetching contest details:', err);
@@ -389,6 +395,22 @@ export default function App() {
 
   const getFilteredAppData = () => {
     if (!appData) return null;
+    
+    if (appData.metadata && appData.metadata.is_mock) {
+      if (selectedSection === 'All') return appData;
+      const filteredStudents = {};
+      Object.entries(appData.students || {}).forEach(([email, s]) => {
+        const secId = s.assignment_id ? String(s.assignment_id) : 'Unassigned';
+        if (secId === String(selectedSection)) {
+          filteredStudents[email] = s;
+        }
+      });
+      return {
+        ...appData,
+        students: filteredStudents
+      };
+    }
+
     if (selectedSection === 'All') return appData;
 
     const filteredStudents = {};
@@ -472,6 +494,7 @@ export default function App() {
   };
 
   const filteredAppData = getFilteredAppData();
+  const isMock = filteredAppData?.metadata?.is_mock || false;
 
   const getDiscoveredAssignmentIds = () => {
     const ids = new Set();
@@ -834,6 +857,7 @@ export default function App() {
       setRunAiUpload(true);
     }
 
+    const isMockFile = file.name.toLowerCase().includes('mock');
     setUploadModal({
       isOpen: true,
       fileName: file.name,
@@ -842,17 +866,18 @@ export default function App() {
       problemsFileText: '',
       contestName: defaultName,
       defaultContestName: defaultName,
-      programSelect: 'General Contests',
+      programSelect: selectedProgram !== 'All' ? selectedProgram : 'General Contests',
       newProgramName: '',
       costLimit: 0.50,
       isUpdateMode: false,
-      selectedContestKey: ''
+      selectedContestKey: '',
+      uploadType: isMockFile ? 'mock' : 'oa'
     });
   };
 
   // Submit Upload Config and File
   const handleUploadSubmit = async () => {
-    const { fileText, fileName, contestName, programSelect, newProgramName, costLimit, problemsFileText, problemsFileName } = uploadModal;
+    const { fileText, fileName, contestName, programSelect, newProgramName, costLimit, problemsFileText, problemsFileName, uploadType } = uploadModal;
     
     const cleanContestName = contestName.trim();
     if (!cleanContestName) {
@@ -871,12 +896,29 @@ export default function App() {
 
     // Close Modal
     setUploadModal(prev => ({ ...prev, isOpen: false }));
-    showToast('Uploading and parsing contest file...', 'info');
+    showToast('Uploading and processing file...', 'info');
 
     try {
+      if (uploadType === 'mock') {
+        const res = await authenticatedFetch(`/api/upload?filename=${encodeURIComponent(fileName)}&contest_name=${encodeURIComponent(cleanContestName)}&program_name=${encodeURIComponent(targetProgram)}&is_mock=true`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: fileText
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Mock file upload failed');
+
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        showToast('Uploaded and processed AI Mock results successfully!', 'success');
+        
+        await loadContestsList();
+        setActiveContestKey(data.contest_key);
+        return;
+      }
+
       // 1. If problems details file is loaded, upload it first
       if (problemsFileText) {
-        const pRes = await authenticatedFetch(`/api/upload?filename=${encodeURIComponent(problemsFileName)}&contest_name=${encodeURIComponent(cleanContestName)}`, {
+        const pRes = await authenticatedFetch(`/api/upload?filename=${encodeURIComponent(problemsFileName)}&contest_name=${encodeURIComponent(cleanContestName)}&is_problems=true`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: problemsFileText
@@ -1335,17 +1377,19 @@ export default function App() {
             <BarChart2 className="w-4 h-4" />
             <span>Overview</span>
           </button>
-          <button
-            onClick={() => setActiveTab('problems')}
-            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-150 cursor-pointer flex-shrink-0 ${
-              activeTab === 'problems'
-                ? 'border-accentCyan text-accentCyan'
-                : 'border-transparent text-textSecondary hover:text-textPrimary'
-            }`}
-          >
-            <Code className="w-4 h-4" />
-            <span>Problem Explorer</span>
-          </button>
+          {!isMock && (
+            <button
+              onClick={() => setActiveTab('problems')}
+              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-150 cursor-pointer flex-shrink-0 ${
+                activeTab === 'problems'
+                  ? 'border-accentCyan text-accentCyan'
+                  : 'border-transparent text-textSecondary hover:text-textPrimary'
+              }`}
+            >
+              <Code className="w-4 h-4" />
+              <span>Problem Explorer</span>
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('students')}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-150 cursor-pointer flex-shrink-0 ${
@@ -1429,10 +1473,11 @@ export default function App() {
                 metadata={filteredAppData?.metadata} 
                 students={appData?.students}
                 sectionsMetadata={sectionsMetadata}
+                isMock={isMock}
               />
             )}
 
-            {activeTab === 'problems' && (
+            {activeTab === 'problems' && !isMock && (
               <ProblemExplorer 
                 problemsData={filteredAppData?.problems} 
               />
@@ -1448,6 +1493,7 @@ export default function App() {
                   setSearchQuery={setSearchQuery}
                   filterType={filterType}
                   setFilterType={setFilterType}
+                  isMock={isMock}
                 />
                 <div className="flex-1 overflow-y-auto h-full pr-1">
                   <StudentPortal
@@ -1461,6 +1507,7 @@ export default function App() {
                     onViewCode={handleOpenCodeViewer}
                     onViewAttemptCode={handleOpenAttemptCodeViewer}
                     isLoading={studentDetailLoading}
+                    isMock={isMock}
                   />
                 </div>
               </div>
@@ -1538,6 +1585,18 @@ export default function App() {
                 <span className="font-mono text-textPrimary break-all">{uploadModal.fileName}</span>
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Assessment Type</label>
+                <select
+                  value={uploadModal.uploadType}
+                  onChange={(e) => setUploadModal(prev => ({ ...prev, uploadType: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
+                >
+                  <option value="oa" className="bg-panelBgSolid text-textPrimary">📝 Online Assessment (OA) Submissions</option>
+                  <option value="mock" className="bg-panelBgSolid text-textPrimary">🤖 AI Mock Interview Results</option>
+                </select>
+              </div>
+
               <div className="flex gap-4 p-1 bg-bgSurfaceInput border border-panelBorder rounded-lg">
                 <button
                   type="button"
@@ -1570,7 +1629,7 @@ export default function App() {
 
               {uploadModal.isUpdateMode ? (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Select Contest to Update</label>
+                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Select to Update</label>
                   <select
                     value={uploadModal.selectedContestKey}
                     onChange={(e) => {
@@ -1586,19 +1645,19 @@ export default function App() {
                     }}
                     className="w-full px-3 py-2.5 text-sm bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
                   >
-                    {contestsList.map(c => (
+                    {contestsList.filter(c => (uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)).map(c => (
                       <option key={c.contest_key} value={c.contest_key} className="bg-panelBgSolid text-textPrimary">
                         {c.contest_name} ({c.program_name || 'General Contests'})
                       </option>
                     ))}
-                    {contestsList.length === 0 && (
-                      <option value="" disabled className="bg-panelBgSolid text-textMuted">No existing contests found</option>
+                    {contestsList.filter(c => (uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)).length === 0 && (
+                      <option value="" disabled className="bg-panelBgSolid text-textMuted">No existing matches found</option>
                     )}
                   </select>
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Contest Name</label>
+                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">Name</label>
                   <input
                     type="text"
                     value={uploadModal.contestName}
@@ -1639,60 +1698,64 @@ export default function App() {
               )}
 
               {/* Optional Problems Details File */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">
-                  Optional: Problems Details JSON (problem.json)
-                </label>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={async (e) => {
-                    if (e.target.files.length > 0) {
-                      const file = e.target.files[0];
-                      const text = await file.text();
-                      setUploadModal(prev => ({
-                        ...prev,
-                        problemsFileName: file.name,
-                        problemsFileText: text
-                      }));
-                    }
-                  }}
-                  className="w-full px-3 py-2 text-xs bg-bgSurfaceInput border border-panelBorder hover:border-textSecondary rounded-lg text-textPrimary outline-none cursor-pointer file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-extrabold file:uppercase file:bg-accentCyan/20 file:text-accentCyan hover:file:bg-accentCyan/30 file:cursor-pointer transition-all"
-                />
-                {uploadModal.problemsFileName && (
-                  <span className="text-[10px] text-accentCyan font-mono mt-0.5 break-all">
-                    📎 Loaded: {uploadModal.problemsFileName}
-                  </span>
-                )}
-              </div>
+              {uploadModal.uploadType === 'oa' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">
+                    Optional: Problems Details JSON (problem.json)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={async (e) => {
+                      if (e.target.files.length > 0) {
+                        const file = e.target.files[0];
+                        const text = await file.text();
+                        setUploadModal(prev => ({
+                          ...prev,
+                          problemsFileName: file.name,
+                          problemsFileText: text
+                        }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-xs bg-bgSurfaceInput border border-panelBorder hover:border-textSecondary rounded-lg text-textPrimary outline-none cursor-pointer file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-extrabold file:uppercase file:bg-accentCyan/20 file:text-accentCyan hover:file:bg-accentCyan/30 file:cursor-pointer transition-all"
+                  />
+                  {uploadModal.problemsFileName && (
+                    <span className="text-[10px] text-accentCyan font-mono mt-0.5 break-all">
+                      📎 Loaded: {uploadModal.problemsFileName}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Checkbox: Run AI Critique */}
-              <div className="flex flex-col gap-2 bg-bgSurfaceInput border border-panelBorder p-3.5 rounded-lg">
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={runAiUpload}
-                    disabled={user.role === 'faculty' && !openaiKey}
-                    onChange={(e) => setRunAiUpload(e.target.checked)}
-                    className="w-4 h-4 rounded text-accentCyan focus:ring-accentCyan border-panelBorder cursor-pointer accent-accentCyan disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <span className={`text-sm font-extrabold ${user.role === 'faculty' && !openaiKey ? 'text-textMuted' : 'text-textPrimary'}`}>
-                    Run AI Critique on Upload
-                  </span>
-                </label>
-                {user.role === 'faculty' && !openaiKey && (
-                  <p className="text-[11px] text-accentOrange leading-normal font-semibold">
-                    ⚠️ You must configure your personal OpenAI API Key in Settings (key icon in header) to run AI critiques. Uploading will run in <strong>dry-run mode</strong> (local metrics calculation only).
-                  </p>
-                )}
-                {user.role === 'admin' && (
-                  <p className="text-[11px] text-textMuted leading-normal font-semibold">
-                    Admin analysis will run using the server's global OpenAI API key.
-                  </p>
-                )}
-              </div>
+              {uploadModal.uploadType === 'oa' && (
+                <div className="flex flex-col gap-2 bg-bgSurfaceInput border border-panelBorder p-3.5 rounded-lg">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={runAiUpload}
+                      disabled={user.role === 'faculty' && !openaiKey}
+                      onChange={(e) => setRunAiUpload(e.target.checked)}
+                      className="w-4 h-4 rounded text-accentCyan focus:ring-accentCyan border-panelBorder cursor-pointer accent-accentCyan disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <span className={`text-sm font-extrabold ${user.role === 'faculty' && !openaiKey ? 'text-textMuted' : 'text-textPrimary'}`}>
+                      Run AI Critique on Upload
+                    </span>
+                  </label>
+                  {user.role === 'faculty' && !openaiKey && (
+                    <p className="text-[11px] text-accentOrange leading-normal font-semibold">
+                      ⚠️ You must configure your personal OpenAI API Key in Settings (key icon in header) to run AI critiques. Uploading will run in <strong>dry-run mode</strong> (local metrics calculation only).
+                    </p>
+                  )}
+                  {user.role === 'admin' && (
+                    <p className="text-[11px] text-textMuted leading-normal font-semibold">
+                      Admin analysis will run using the server's global OpenAI API key.
+                    </p>
+                  )}
+                </div>
+              )}
 
-              {runAiUpload && (
+              {uploadModal.uploadType === 'oa' && runAiUpload && (
                 <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-150">
                   <label className="text-xs font-extrabold text-textSecondary uppercase tracking-wider">AI Cost Threshold Limit (USD)</label>
                   <div className="flex items-center gap-3 bg-bgSurfaceInput border border-panelBorder p-3 rounded-lg">

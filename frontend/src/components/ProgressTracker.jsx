@@ -21,17 +21,19 @@ export default function ProgressTracker({ progressData, onSelectStudent, selecte
   const totalMilestonesQuestions = milestones.reduce((sum, m) => sum + (m.total_questions || 0), 0);
 
   const studentsWithScores = sectionFilteredStudents.map(s => {
-    let solvedSum = 0;
+    let scoreSum = 0;
+    let count = 0;
     milestones.forEach(m => {
       const hist = s.history[m.contest_key];
-      if (hist) {
-        solvedSum += hist.solved_count || 0;
+      if (hist && hist.score_pct !== null && hist.score_pct !== undefined) {
+        scoreSum += hist.score_pct;
+        count++;
       }
     });
-    const overallRate = totalMilestonesQuestions > 0 ? (solvedSum / totalMilestonesQuestions) : 0;
+    const overallRate = count > 0 ? (scoreSum / count) / 100 : 0;
     return {
       ...s,
-      solvedSum,
+      solvedSum: Math.round(overallRate * 100), // overall score average
       overallRate
     };
   });
@@ -39,8 +41,8 @@ export default function ProgressTracker({ progressData, onSelectStudent, selecte
   // Sort students by overall rate descending
   studentsWithScores.sort((a, b) => b.overallRate - a.overallRate);
 
-  const cohortSolveRate = totalMilestonesQuestions * sectionFilteredStudents.length > 0
-    ? Math.round((studentsWithScores.reduce((sum, s) => sum + s.solvedSum, 0) / (totalMilestonesQuestions * sectionFilteredStudents.length)) * 100)
+  const cohortSolveRate = studentsWithScores.length > 0
+    ? Math.round(studentsWithScores.reduce((sum, s) => sum + s.overallRate, 0) / studentsWithScores.length * 100)
     : 0;
 
   // Render Milestone Trend cards and compute trend status based on section-filtered students
@@ -48,19 +50,18 @@ export default function ProgressTracker({ progressData, onSelectStudent, selecte
   let lastTrendText = 'Stable';
 
   const trendCards = milestones.map((m, idx) => {
-    let milestoneSolved = 0;
+    let scoreSum = 0;
     let studentsInMilestone = 0;
 
     sectionFilteredStudents.forEach(s => {
       const hist = s.history[m.contest_key];
-      if (hist && hist.attempted_count > 0) {
-        milestoneSolved += hist.solved_count || 0;
+      if (hist && hist.score_pct !== null && hist.score_pct !== undefined) {
+        scoreSum += hist.score_pct;
         studentsInMilestone++;
       }
     });
 
-    const possibleSolved = m.total_questions * studentsInMilestone;
-    const milestoneRate = possibleSolved > 0 ? Math.round((milestoneSolved / possibleSolved) * 100) : 0;
+    const milestoneRate = studentsInMilestone > 0 ? Math.round(scoreSum / studentsInMilestone) : 0;
 
     let trendDiff = 0;
     let trendDirection = 'flat'; // 'up', 'down', 'flat'
@@ -136,7 +137,7 @@ export default function ProgressTracker({ progressData, onSelectStudent, selecte
             <LineChart className="w-5 h-5" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Cohort Solve Rate</span>
+            <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Cohort Avg Score</span>
             <span className="text-xl font-bold text-textPrimary tracking-tight mt-0.5 leading-none">{cohortSolveRate}%</span>
           </div>
         </div>
@@ -192,7 +193,7 @@ export default function ProgressTracker({ progressData, onSelectStudent, selecte
                     <div className="flex items-center justify-between text-[11px] text-textSecondary">
                       <span>Milestones: {Object.keys(s.history).length}/{milestones.length}</span>
                       <span className="font-semibold">
-                        Pass: <span className={rateColor}>{s.solvedSum}/{totalMilestonesQuestions}</span> ({pct}%)
+                        Avg Score: <span className={rateColor}>{s.solvedSum}%</span>
                       </span>
                     </div>
                   </div>
@@ -213,16 +214,21 @@ export default function ProgressTracker({ progressData, onSelectStudent, selecte
                 <thead>
                   <tr className="border-b border-panelBorder text-textSecondary text-[10px] font-bold uppercase tracking-wider">
                     <th className="pb-2.5 pr-3 sticky left-0 bg-panelBgSolid z-10">Student</th>
-                    <th className="pb-2.5 pr-3 min-w-[140px]">Overall Progress</th>
-                    {milestones.map((m, idx) => (
-                      <th 
-                        key={m.contest_key} 
-                        className="pb-2.5 text-center min-w-[80px]"
-                        title={m.contest_name || m.contest_key}
-                      >
-                        M{idx + 1}
-                      </th>
-                    ))}
+                    <th className="pb-2.5 pr-3 min-w-[140px]">Overall Average</th>
+                    {milestones.map((m, idx) => {
+                      const compactName = m.contest_name && m.contest_name.length > 18 
+                        ? m.contest_name.substring(0, 15) + '...' 
+                        : (m.contest_name || m.contest_key);
+                      return (
+                        <th 
+                          key={m.contest_key} 
+                          className="pb-2.5 text-center min-w-[120px] max-w-[160px] truncate"
+                          title={m.contest_name || m.contest_key}
+                        >
+                          {compactName}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-panelBorder/40">
@@ -250,23 +256,29 @@ export default function ProgressTracker({ progressData, onSelectStudent, selecte
                               <div className="w-14 h-1.5 bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/10">
                                 <div
                                   className={`h-full rounded-full ${
-                                    pct > 75 ? 'bg-accentGreen' : pct < 40 ? 'bg-accentRose' : 'bg-accentOrange'
+                                    pct >= 70 ? 'bg-accentGreen' : pct < 40 ? 'bg-accentRose' : 'bg-accentOrange'
                                   }`}
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
-                              <span className="text-[10px] text-textMuted">{s.solvedSum}/{totalMilestonesQuestions}</span>
                             </div>
                           </td>
                           {/* Milestones Solved Ratio Badges */}
                           {milestones.map((m) => {
                             const hist = s.history[m.contest_key];
-                            if (hist && hist.attempted_count > 0) {
-                              const badgeStyle = getMilestoneBadgeClass(hist.solved_count, m.total_questions);
+                            if (hist && hist.score_pct !== null && hist.score_pct !== undefined) {
+                              const scoreVal = hist.score_pct;
+                              const badgeStyle = scoreVal >= 70 
+                                ? 'text-accentGreen bg-accentGreen/10 border border-accentGreen/30 px-2 py-0.5 rounded font-bold font-mono' 
+                                : (scoreVal < 40 
+                                    ? 'text-accentRose bg-accentRose/5 border-accentRose/10 font-semibold font-mono' 
+                                    : 'text-accentOrange bg-accentOrange/5 border-accentOrange/10 font-semibold font-mono');
+                              
+                              const displayVal = m.is_mock ? scoreVal : `${scoreVal}%`;
                               return (
                                 <td key={m.contest_key} className="py-2 text-center">
-                                  <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeStyle}`}>
-                                    {hist.solved_count}/{m.total_questions}
+                                  <span className={`inline-block text-[10px] ${badgeStyle}`}>
+                                    {displayVal}
                                   </span>
                                 </td>
                               );

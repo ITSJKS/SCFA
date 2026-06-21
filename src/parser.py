@@ -209,3 +209,54 @@ def group_data(submissions, problems_metadata=None):
         prob["submissions"].sort(key=lambda s: s["created_at"])
         
     return student_groups, problem_groups
+
+def parse_mock_file(filepath):
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Mock file not found: {filepath}")
+        
+    with open(filepath, "r") as f:
+        raw_data = json.load(f)
+        
+    attempts = []
+    for item in raw_data:
+        email = str(item.get("email", "")).strip()
+        if not email:
+            continue
+        
+        raw_rating = item.get("rating")
+        try:
+            rating = int(float(raw_rating)) if raw_rating is not None and str(raw_rating).strip() != "" else None
+        except (ValueError, TypeError):
+            rating = None
+            
+        raw_comms = item.get("communication_score")
+        try:
+            comms_score = float(raw_comms) if raw_comms is not None and str(raw_comms).strip() != "" else None
+        except (ValueError, TypeError):
+            comms_score = None
+            
+        hr_report_link = item.get("hr_report_link", "")
+        if hr_report_link:
+            hr_report_link = str(hr_report_link).strip()
+            
+        start_ts_str = item.get("start_timestamp", "")
+        start_ts = parse_date(start_ts_str)
+        
+        attempts.append({
+            "user_id": item.get("user_id"),
+            "first_name": item.get("first_name", ""),
+            "last_name": item.get("last_name", ""),
+            "email": email,
+            "one_to_one_id": item.get("one_to_one_id"),
+            "start_timestamp": start_ts,
+            "start_timestamp_str": start_ts_str,
+            "rating": rating,
+            "communication_score": comms_score,
+            "hr_report_link": hr_report_link,
+            "o2o_hash": item.get("o2o_hash"),
+            "o2o_title": item.get("o2o_title"),
+            "verdict": item.get("verdict", "")
+        })
+        
+    attempts.sort(key=lambda x: x["start_timestamp"])
+    return attempts

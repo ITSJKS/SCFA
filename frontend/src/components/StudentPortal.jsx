@@ -14,22 +14,42 @@ export default function StudentPortal({
   isSingleAnalyzing,
   onViewCode,
   onViewAttemptCode,
-  isLoading = false
+  isLoading = false,
+  isMock = false
 }) {
   const [openAccordions, setOpenAccordions] = useState({});
   const [notesText, setNotesText] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [drafts, setDrafts] = useState({});
 
   useEffect(() => {
-    if (student) {
-      setNotesText(student.custom_feedback || '');
+    if (email) {
+      if (drafts[email] !== undefined) {
+        setNotesText(drafts[email]);
+      } else {
+        setNotesText((student && student.custom_feedback) || '');
+      }
     }
   }, [student, email]);
+
+  const handleNotesChange = (val) => {
+    setNotesText(val);
+    setDrafts(prev => ({
+      ...prev,
+      [email]: val
+    }));
+  };
 
   const handleSaveNotes = async () => {
     if (!onSaveFeedback) return;
     setIsSavingNotes(true);
-    await onSaveFeedback(email, notesText);
+    const success = await onSaveFeedback(email, notesText);
+    if (success !== false) {
+      setDrafts(prev => ({
+        ...prev,
+        [email]: notesText
+      }));
+    }
     setIsSavingNotes(false);
   };
 
@@ -46,14 +66,160 @@ export default function StudentPortal({
   if (!student) {
     return (
       <div className="flex flex-col items-center justify-center h-[55vh] text-center p-8 glass-panel rounded-xl border border-panelBorder select-none">
-        <UsersPlaceholder />
+        <div className="text-textMuted text-xs">No Student Selected</div>
         <h3 className="text-lg font-black text-textPrimary mt-4">No Student Selected</h3>
         <p className="text-sm text-textSecondary max-w-sm mt-1.5 leading-relaxed">
-          Please select a student from the sidebar directory to view their personalized AI critiques, timeline logs, and source code submissions.
+          Please select a student from the sidebar directory to view their details.
         </p>
       </div>
     );
   }
+
+  if (isMock) {
+    const latestRating = student.latest_rating;
+    const bestRating = student.best_rating;
+    const commsScore = student.latest_communication_score;
+    
+    const effRating = latestRating !== null && latestRating !== undefined ? latestRating : bestRating;
+    const hasScore = effRating !== null && effRating !== undefined;
+    const ratingColor = hasScore 
+      ? (effRating >= 70 ? 'text-accentGreen bg-accentGreen/10 border-accentGreen/30' : (effRating < 50 ? 'text-accentRose bg-accentRose/5 border-accentRose/10' : 'text-accentOrange bg-accentOrange/5 border-accentOrange/10')) 
+      : 'text-textMuted bg-panelBorder/5 border-panelBorder/10';
+      
+    const scoreDisplay = latestRating !== null && latestRating !== undefined 
+      ? latestRating 
+      : (bestRating !== null && bestRating !== undefined ? `${bestRating} (Best)` : 'N/A');
+    
+    return (
+      <div className="flex flex-col gap-5 animate-in fade-in duration-200">
+        {/* Profile Header */}
+        <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1 min-w-0">
+            <h2 className="text-base font-bold text-textPrimary tracking-tight truncate max-w-full" title={email}>
+              {student.first_name || student.last_name ? `${student.first_name} ${student.last_name}`.trim() : email}
+            </h2>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-textSecondary">
+              <span className="font-semibold text-textMuted">Email: {email}</span>
+              <span className="text-panelBorder font-light">•</span>
+              <span className="font-semibold text-textMuted">User ID: {student.user_id}</span>
+              <span className="text-panelBorder font-light">•</span>
+              <span className="font-medium">Attempts: {student.attempts?.length || 0}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 flex-shrink-0">
+            <div className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${ratingColor}`}>
+              Latest Score: {scoreDisplay} (Best: {bestRating !== null ? bestRating : 'N/A'})
+            </div>
+            {commsScore !== null && (
+              <div className="bg-bgSurfaceInput border border-panelBorder/80 px-3 py-1.5 rounded-lg text-xs font-semibold text-textPrimary uppercase tracking-wider">
+                Communication: {commsScore} / 5
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Faculty Evaluator Notes */}
+        <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col gap-3.5">
+          <h3 className="text-xs font-bold text-accentCyan flex items-center gap-2 border-b border-panelBorder/20 pb-2 uppercase tracking-wider">
+            <BrainCircuit className="w-4.5 h-4.5" /> Faculty Evaluator Notes
+          </h3>
+          <div className="flex flex-col gap-2.5">
+            <textarea
+              value={notesText}
+              onChange={(e) => handleNotesChange(e.target.value)}
+              placeholder="Type custom feedback, performance overrides, or private guidance notes for this student here..."
+              className="w-full h-20 bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg p-3 text-xs text-textPrimary placeholder:text-textMuted outline-none transition-all resize-none font-medium"
+            />
+            <div className="flex justify-end items-center gap-3">
+              {isSavingNotes && (
+                <span className="text-[10px] text-textMuted font-medium animate-pulse">Saving notes...</span>
+              )}
+              <button
+                onClick={handleSaveNotes}
+                disabled={isSavingNotes || notesText === (student.custom_feedback || '')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                  notesText === (student.custom_feedback || '')
+                    ? 'bg-panelBorder/10 border-panelBorder/20 text-textMuted cursor-not-allowed'
+                    : 'bg-accentCyan/10 hover:bg-accentCyan border-accentCyan/20 hover:border-accentCyan hover:text-darkBg text-accentCyan'
+                }`}
+              >
+                <span>Save Notes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mock Interview Attempts List */}
+        <div className="flex flex-col gap-4">
+          <h3 className="text-xs font-bold text-textPrimary uppercase tracking-wider border-b border-panelBorder/20 pb-2">
+            AI Mock Interview Attempts ({student.attempts?.length || 0})
+          </h3>
+
+          <div className="grid grid-cols-1 gap-4">
+            {student.attempts?.map((attempt, index) => {
+              const attemptRating = attempt.rating;
+              const isHigh = attemptRating >= 70;
+              return (
+                <div 
+                  key={index} 
+                  className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-glow transition-all"
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-textPrimary uppercase tracking-wide">
+                        Attempt #{index + 1}
+                      </span>
+                    </div>
+                    <span className="text-xs text-textSecondary font-semibold font-mono">
+                      Started: {attempt.start_timestamp}
+                    </span>
+                    <span className="text-[11px] text-textMuted italic mt-0.5">
+                      Type: {attempt.o2o_title || 'DSA AI Mock'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4.5">
+                    <div className="flex items-center gap-3 bg-bgSurfaceInput px-3.5 py-2 border border-panelBorder rounded-lg">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-textMuted uppercase font-bold tracking-wider">Score</span>
+                        <span className={`font-mono leading-none ${attemptRating !== null && attemptRating !== undefined ? (isHigh ? 'bg-accentGreen/10 border border-accentGreen/20 text-accentGreen px-2 py-1 rounded text-sm font-black' : (attemptRating < 50 ? 'text-base font-black text-accentRose' : 'text-base font-black text-accentOrange')) : 'text-base font-black text-textMuted'}`}>
+                          {attemptRating !== null ? attemptRating : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="w-px h-6 bg-panelBorder" />
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-textMuted uppercase font-bold tracking-wider">Comms</span>
+                        <span className="text-base font-black font-mono leading-none text-accentCyan">
+                          {attempt.communication_score !== null ? attempt.communication_score : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {attempt.hr_report_link && (
+                      <a
+                        href={attempt.hr_report_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-accentCyan hover:bg-accentCyan/80 text-darkBg rounded-lg text-xs font-extrabold shadow-md hover:shadow-glow transition-all cursor-pointer"
+                      >
+                        <span>View Report</span>
+                        <span className="text-[10px]">↗</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {(!student.attempts || student.attempts.length === 0) && (
+              <p className="text-center text-textMuted text-xs py-6">No attempts recorded for this mock.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   const toggleAccordion = (qid) => {
     setOpenAccordions(prev => ({
@@ -199,7 +365,7 @@ export default function StudentPortal({
         <div className="flex flex-col gap-2.5">
           <textarea
             value={notesText}
-            onChange={(e) => setNotesText(e.target.value)}
+            onChange={(e) => handleNotesChange(e.target.value)}
             placeholder="Type custom feedback, performance overrides, or private guidance notes for this student here..."
             className="w-full h-20 bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg p-3 text-xs text-textPrimary placeholder:text-textMuted outline-none transition-all resize-none font-medium"
           />

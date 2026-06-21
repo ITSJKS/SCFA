@@ -1,7 +1,344 @@
 import React from 'react';
 import { Users, Terminal, CheckCircle2, TrendingUp, Code, AlertTriangle, AlertCircle, RefreshCw } from 'lucide-react';
 
-export default function ContestDashboard({ problemsData, metadata, students = {}, sectionsMetadata = {} }) {
+export default function ContestDashboard({ problemsData, metadata, students = {}, sectionsMetadata = {}, isMock = false }) {
+  if (isMock) {
+    let totalRating = 0;
+    let ratingCount = 0;
+    let totalComms = 0;
+    let commsCount = 0;
+    const totalStudents = metadata?.total_students || 0;
+    const totalAttempts = metadata?.total_attempts || 0;
+    let eliteRatingCount = 0;
+    let satisfactoryRatingCount = 0;
+    let strugglingRatingCount = 0;
+    
+    let fluentCommsCount = 0;
+    let averageCommsCount = 0;
+    let strugglingCommsCount = 0;
+
+    Object.values(students || {}).forEach(s => {
+      // Metric calculations
+      if (s.latest_rating !== null && s.latest_rating !== undefined) {
+        totalRating += Number(s.latest_rating);
+        ratingCount++;
+      } else if (s.best_rating !== null && s.best_rating !== undefined) {
+        totalRating += Number(s.best_rating);
+        ratingCount++;
+      }
+      
+      if (s.latest_communication_score !== null && s.latest_communication_score !== undefined) {
+        totalComms += Number(s.latest_communication_score);
+        commsCount++;
+      }
+      
+      // Rating / Score counts (70+ is elite)
+      const effRating = s.latest_rating !== null && s.latest_rating !== undefined ? s.latest_rating : s.best_rating;
+      if (effRating !== null && effRating !== undefined) {
+        const r = Number(effRating);
+        if (r >= 70) {
+          eliteRatingCount++;
+        } else if (r >= 50) {
+          satisfactoryRatingCount++;
+        } else {
+          strugglingRatingCount++;
+        }
+      } else {
+        strugglingRatingCount++;
+      }
+      
+      // Communication counts
+      if (s.latest_communication_score !== null && s.latest_communication_score !== undefined) {
+        const c = Number(s.latest_communication_score);
+        if (c >= 4.0) {
+          fluentCommsCount++;
+        } else if (c >= 3.0) {
+          averageCommsCount++;
+        } else {
+          strugglingCommsCount++;
+        }
+      } else {
+        strugglingCommsCount++;
+      }
+    });
+    
+    const avgRating = ratingCount > 0 ? Math.round((totalRating / ratingCount) * 10) / 10 : 0;
+    const avgComms = commsCount > 0 ? Math.round((totalComms / commsCount) * 10) / 10 : 0;
+    
+    const studentList = Object.values(students || {}).sort((a, b) => {
+      const rA = a.latest_rating !== null && a.latest_rating !== undefined ? a.latest_rating : (a.best_rating !== null ? a.best_rating : -1);
+      const rB = b.latest_rating !== null && b.latest_rating !== undefined ? b.latest_rating : (b.best_rating !== null ? b.best_rating : -1);
+      return rB - rA;
+    });
+
+    return (
+      <div className="flex flex-col gap-5 animate-in fade-in duration-200">
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Total Students */}
+          <div className="glass-panel p-4 rounded-xl border border-panelBorder flex items-center gap-3.5 hover:shadow-glow transition-all">
+            <div className="p-2 bg-accentCyan/10 rounded-lg text-accentCyan flex items-center justify-center flex-shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Total Students</span>
+              <span className="text-xl font-bold text-textPrimary tracking-tight mt-0.5 leading-none">{totalStudents}</span>
+            </div>
+          </div>
+
+          {/* Total Attempts */}
+          <div className="glass-panel p-4 rounded-xl border border-panelBorder flex items-center gap-3.5 hover:shadow-glowPurple transition-all">
+            <div className="p-2 bg-accentPurple/10 rounded-lg text-accentPurple flex items-center justify-center flex-shrink-0">
+              <Terminal className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Total Attempts</span>
+              <span className="text-xl font-bold text-textPrimary tracking-tight mt-0.5 leading-none">{totalAttempts}</span>
+            </div>
+          </div>
+
+          {/* Avg Rating */}
+          <div className="glass-panel p-4 rounded-xl border border-panelBorder flex items-center gap-3.5 hover:shadow-glow transition-all">
+            <div className="p-2 bg-accentGreen/10 rounded-lg text-accentGreen flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Avg. Rating Score</span>
+              <span className="text-xl font-bold text-textPrimary tracking-tight mt-0.5 leading-none">{avgRating} / 100</span>
+            </div>
+          </div>
+
+          {/* Avg Comms */}
+          <div className="glass-panel p-4 rounded-xl border border-panelBorder flex items-center gap-3.5 hover:shadow-glow transition-all">
+            <div className="p-2 bg-accentOrange/10 rounded-lg text-accentOrange flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider">Avg. Communication</span>
+              <span className="text-xl font-bold text-textPrimary tracking-tight mt-0.5 leading-none">{avgComms} / 5</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Comparative Distribution Overview Panels */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Rating distribution */}
+          <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col gap-3.5">
+            <div className="flex items-center gap-2 border-b border-panelBorder/30 pb-2">
+              <Users className="w-4 h-4 text-accentCyan" />
+              <h2 className="text-xs font-bold text-textPrimary uppercase tracking-wider">Score Distribution</h2>
+            </div>
+            <div className="flex flex-col gap-4 flex-1 justify-center py-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="text-textSecondary">Elite (70+)</span>
+                  <span className="font-mono text-accentGreen">
+                    {eliteRatingCount} ({totalStudents > 0 ? Math.round((eliteRatingCount / totalStudents) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/10">
+                  <div
+                    className="h-full rounded-full bg-accentGreen"
+                    style={{ width: `${totalStudents > 0 ? (eliteRatingCount / totalStudents) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="text-textSecondary">Satisfactory (50-69)</span>
+                  <span className="font-mono text-accentOrange">
+                    {satisfactoryRatingCount} ({totalStudents > 0 ? Math.round((satisfactoryRatingCount / totalStudents) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/10">
+                  <div
+                    className="h-full rounded-full bg-accentOrange"
+                    style={{ width: `${totalStudents > 0 ? (satisfactoryRatingCount / totalStudents) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="text-textSecondary">Struggling (&lt;50)</span>
+                  <span className="font-mono text-accentRose">
+                    {strugglingRatingCount} ({totalStudents > 0 ? Math.round((strugglingRatingCount / totalStudents) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/10">
+                  <div
+                    className="h-full rounded-full bg-accentRose"
+                    style={{ width: `${totalStudents > 0 ? (strugglingRatingCount / totalStudents) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Comms distribution */}
+          <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col gap-3.5">
+            <div className="flex items-center gap-2 border-b border-panelBorder/30 pb-2">
+              <TrendingUp className="w-4 h-4 text-accentOrange" />
+              <h2 className="text-xs font-bold text-textPrimary uppercase tracking-wider">Communication Distribution</h2>
+            </div>
+            <div className="flex flex-col gap-4 flex-1 justify-center py-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="text-textSecondary">Fluent (4.0+)</span>
+                  <span className="font-mono text-accentCyan">
+                    {fluentCommsCount} ({totalStudents > 0 ? Math.round((fluentCommsCount / totalStudents) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/10">
+                  <div
+                    className="h-full rounded-full bg-accentCyan"
+                    style={{ width: `${totalStudents > 0 ? (fluentCommsCount / totalStudents) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="text-textSecondary">Average (3.0-3.9)</span>
+                  <span className="font-mono text-accentOrange">
+                    {averageCommsCount} ({totalStudents > 0 ? Math.round((averageCommsCount / totalStudents) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/10">
+                  <div
+                    className="h-full rounded-full bg-accentOrange"
+                    style={{ width: `${totalStudents > 0 ? (averageCommsCount / totalStudents) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="text-textSecondary">Struggling (&lt;3.0)</span>
+                  <span className="font-mono text-accentRose">
+                    {strugglingCommsCount} ({totalStudents > 0 ? Math.round((strugglingCommsCount / totalStudents) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-bgSurfaceInput rounded-full overflow-hidden border border-panelBorder/10">
+                  <div
+                    className="h-full rounded-full bg-accentRose"
+                    style={{ width: `${totalStudents > 0 ? (strugglingCommsCount / totalStudents) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Students Summary Table */}
+        <div className="glass-panel p-4.5 rounded-xl border border-panelBorder flex flex-col gap-3.5">
+          <div className="flex items-center gap-2 border-b border-panelBorder/30 pb-2">
+            <Code className="w-4 h-4 text-accentCyan" />
+            <h2 className="text-xs font-bold text-textPrimary uppercase tracking-wider">Student Mock Performance Overview</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-panelBorder text-textSecondary text-[10px] font-bold uppercase tracking-wider">
+                  <th className="pb-2 pr-2">Student Name</th>
+                  <th className="pb-2 pr-2">Email</th>
+                  <th className="pb-2 pr-2 text-right">Latest Score</th>
+                  <th className="pb-2 pr-2 text-right">Best Score</th>
+                  <th className="pb-2 pr-2 text-right">Comms Score</th>
+                  <th className="pb-2 pr-2 text-right">Attempts</th>
+                  <th className="pb-2 text-right">Feedback Report</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-panelBorder/40">
+                {studentList.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="py-6 text-center text-textMuted text-xs">
+                      No student mock records found.
+                    </td>
+                  </tr>
+                ) : (
+                  studentList.map((s) => {
+                    const effRating = s.latest_rating !== null && s.latest_rating !== undefined ? s.latest_rating : s.best_rating;
+                    const hasScore = effRating !== null && effRating !== undefined;
+                    const isHighRating = effRating >= 70;
+                    
+                    const scoreDisplay = s.latest_rating !== null && s.latest_rating !== undefined
+                      ? s.latest_rating
+                      : (s.best_rating !== null && s.best_rating !== undefined ? `${s.best_rating} (Best)` : 'N/A');
+
+                    const isHighBest = s.best_rating >= 70;
+                    
+                    return (
+                      <tr key={s.email} className="hover:bg-bgSurfaceHover transition-colors">
+                        <td className="py-2.5 pr-2 font-semibold text-textPrimary">
+                          {s.first_name || s.last_name ? `${s.first_name} ${s.last_name}`.trim() : 'N/A'}
+                        </td>
+                        <td className="py-2.5 pr-2 font-semibold font-mono text-textSecondary">
+                          {s.email}
+                        </td>
+                        <td className="py-2.5 pr-2 text-right">
+                          {hasScore ? (
+                            isHighRating ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded border border-accentGreen/30 bg-accentGreen/10 text-accentGreen font-bold font-mono">
+                                {scoreDisplay}
+                              </span>
+                            ) : (
+                              <span className={`font-bold font-mono ${effRating < 50 ? 'text-accentRose' : 'text-accentOrange'}`}>
+                                {scoreDisplay}
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-textMuted font-mono">N/A</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 pr-2 text-right">
+                          {s.best_rating !== null && s.best_rating !== undefined ? (
+                            isHighBest ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded border border-accentGreen/30 bg-accentGreen/10 text-accentGreen font-bold font-mono">
+                                {s.best_rating}
+                              </span>
+                            ) : (
+                              <span className={`font-bold font-mono ${s.best_rating < 50 ? 'text-accentRose' : 'text-accentOrange'}`}>
+                                {s.best_rating}
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-textMuted font-mono">N/A</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 pr-2 font-bold font-mono text-right text-accentCyan">
+                          {s.latest_communication_score !== null ? s.latest_communication_score : 'N/A'}
+                        </td>
+                        <td className="py-2.5 pr-2 font-mono text-right text-textSecondary">
+                          {s.attempts?.length || 0}
+                        </td>
+                        <td className="py-2.5 text-right">
+                          {s.latest_hr_report_link ? (
+                            <a
+                              href={s.latest_hr_report_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] text-accentCyan hover:underline font-bold"
+                            >
+                              <span>View Report</span>
+                              <span>↗</span>
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-textMuted italic">No Link</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
   // Aggregate stats
   const totalStudents = metadata?.total_students || 0;
   const totalSubmissions = metadata?.total_submissions || 0;
