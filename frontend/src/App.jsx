@@ -1695,10 +1695,10 @@ export default function App() {
                       }}
                       className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer"
                     >
-                      {contestsList.filter(c => (uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)).map(c => (
+                      {contestsForUploadType(uploadModal.uploadType).map(c => (
                         <option key={c.contest_key} value={c.contest_key} className="bg-panelBgSolid">{c.contest_name} ({c.program_name || 'General'})</option>
                       ))}
-                      {contestsList.filter(c => (uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)).length === 0 && (
+                      {contestsForUploadType(uploadModal.uploadType).length === 0 && (
                         <option value="" disabled className="text-textMuted">No existing matches</option>
                       )}
                     </select>
