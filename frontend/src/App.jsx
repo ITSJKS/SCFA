@@ -89,7 +89,11 @@ export default function App() {
     costLimit: 0.50,
     uploadType: 'oa',
     isUpdateMode: false,
-    selectedContestKey: ''
+    selectedContestKey: '',
+    syncSource: 'metabase',
+    metabaseSession: localStorage.getItem('metabaseSession') || '',
+    assignmentId: '',
+    courseId: ''
   });
 
   // Toast / Status Message State
@@ -888,9 +892,35 @@ export default function App() {
     }
   };
 
-  // Handle Upload File Selecting
+  // Open Add Contest/Mock Modal
   const handleUploadClick = () => {
-    if (fileInputRef.current) fileInputRef.current.click();
+    const defaultProgram = selectedProgram !== 'All' ? selectedProgram : 'General Contests';
+    
+    if (user && user.role === 'faculty') {
+      setRunAiUpload(!!openaiKey);
+    } else {
+      setRunAiUpload(true);
+    }
+
+    setUploadModal({
+      isOpen: true,
+      fileName: '',
+      fileText: '',
+      problemsFileName: '',
+      problemsFileText: '',
+      contestName: '',
+      defaultContestName: '',
+      programSelect: defaultProgram,
+      newProgramName: '',
+      costLimit: 0.50,
+      uploadType: 'oa',
+      isUpdateMode: false,
+      selectedContestKey: '',
+      syncSource: 'metabase',
+      metabaseSession: localStorage.getItem('metabaseSession') || '',
+      assignmentId: '',
+      courseId: ''
+    });
   };
 
   const handleFileChange = async (e) => {
@@ -916,33 +946,36 @@ export default function App() {
     }
 
     const isMockFile = file.name.toLowerCase().includes('mock');
-    setUploadModal({
+    setUploadModal(prev => ({
+      ...prev,
       isOpen: true,
       fileName: file.name,
       fileText: text,
-      problemsFileName: '',
-      problemsFileText: '',
-      contestName: defaultName,
+      contestName: prev.contestName || defaultName,
       defaultContestName: defaultName,
-      programSelect: selectedProgram !== 'All' ? selectedProgram : 'General Contests',
-      newProgramName: '',
-      costLimit: 0.50,
-      isUpdateMode: false,
-      selectedContestKey: '',
-      uploadType: isMockFile ? 'mock' : 'oa'
-    });
+      uploadType: isMockFile ? 'mock' : prev.uploadType,
+      syncSource: 'local'
+    }));
   };
 
-  // Submit Upload Config and File
+  // Submit Upload Config / Metabase Sync
   const handleUploadSubmit = async () => {
-    const { fileText, fileName, contestName, programSelect, newProgramName, costLimit, problemsFileText, problemsFileName, uploadType } = uploadModal;
+    const { 
+      fileText, 
+      fileName, 
+      contestName, 
+      programSelect, 
+      newProgramName, 
+      costLimit, 
+      problemsFileText, 
+      problemsFileName, 
+      uploadType, 
+      syncSource,
+      metabaseSession,
+      assignmentId,
+      courseId
+    } = uploadModal;
     
-    const cleanContestName = contestName.trim();
-    if (!cleanContestName) {
-      alert('Contest name cannot be empty.');
-      return;
-    }
-
     let targetProgram = programSelect;
     if (programSelect === '__NEW__') {
       targetProgram = newProgramName.trim();
@@ -950,6 +983,113 @@ export default function App() {
         alert('Please enter a name for the new Program.');
         return;
       }
+    }
+
+    if (syncSource === 'metabase') {
+      const cleanSession = metabaseSession.trim();
+      if (!cleanSession) {
+        alert('Please enter your Metabase session token.');
+        return;
+      }
+
+      // Save to localStorage for convenience
+      localStorage.setItem('metabaseSession', cleanSession);
+
+      if (uploadType === 'oa') {
+        const cleanAssignmentId = assignmentId.trim();
+        if (!cleanAssignmentId || isNaN(cleanAssignmentId)) {
+          alert('Please enter a valid numeric Assignment ID.');
+          return;
+        }
+
+        // Close Modal
+        setUploadModal(prev => ({ ...prev, isOpen: false }));
+        showToast('Syncing contest & problems from Metabase...', 'info');
+
+        try {
+          const runAi = runAiUpload;
+          const url = `/api/metabase/sync-contest?assignment_id=${encodeURIComponent(cleanAssignmentId)}&run_ai=${runAi}&cost_limit=${costLimit}` +
+            (contestName.trim() ? `&contest_name=${encodeURIComponent(contestName.trim())}` : '') +
+            (targetProgram ? `&program_name=${encodeURIComponent(targetProgram)}` : '');
+
+          const res = await authenticatedFetch(url, {
+            method: 'POST',
+            headers: {
+              'X-Metabase-Session': cleanSession
+            }
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.detail || data.message || 'Contest sync failed.');
+          }
+
+          if (runAi) {
+            showToast('Sync completed. Started background AI critique!', 'success');
+          } else {
+            showToast('Sync completed successfully!', 'success');
+          }
+
+          // Setup state for recovered widget
+          localStorage.setItem('activeAnalysisKey', data.contest_key);
+          localStorage.setItem('activeAnalysisCostLimit', costLimit);
+          localStorage.setItem('activeAnalysisName', contestName.trim() || `Assignment ${cleanAssignmentId}`);
+
+          await fetchContests(data.contest_key);
+          if (runAi) {
+            startStatusPolling(data.contest_key, costLimit, contestName.trim() || `Assignment ${cleanAssignmentId}`);
+          }
+        } catch (err) {
+          console.error(err);
+          alert(`Sync Failed: ${err.message}`);
+        }
+      } else {
+        // AI Mock Sync
+        const cleanCourseId = courseId.trim();
+        if (!cleanCourseId || isNaN(cleanCourseId)) {
+          alert('Please enter a valid numeric Course ID.');
+          return;
+        }
+
+        // Close Modal
+        setUploadModal(prev => ({ ...prev, isOpen: false }));
+        showToast('Syncing AI Mock data from Metabase...', 'info');
+
+        try {
+          const url = `/api/metabase/sync-mock?course_id=${encodeURIComponent(cleanCourseId)}` +
+            (contestName.trim() ? `&contest_name=${encodeURIComponent(contestName.trim())}` : '') +
+            (targetProgram ? `&program_name=${encodeURIComponent(targetProgram)}` : '');
+
+          const res = await authenticatedFetch(url, {
+            method: 'POST',
+            headers: {
+              'X-Metabase-Session': cleanSession
+            }
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.detail || data.message || 'AI Mock sync failed.');
+          }
+
+          showToast('Synced and processed AI Mock results successfully!', 'success');
+          await fetchContests(data.contest_key);
+        } catch (err) {
+          console.error(err);
+          alert(`Sync Failed: ${err.message}`);
+        }
+      }
+
+      return;
+    }
+
+    // Otherwise, local file upload flow
+    const cleanContestName = contestName.trim();
+    if (!cleanContestName) {
+      alert('Contest name cannot be empty.');
+      return;
+    }
+    if (!fileName) {
+      alert('Please upload a JSON file first.');
+      return;
     }
 
     // Close Modal
@@ -1346,13 +1486,13 @@ export default function App() {
             </button>
           )}
 
-          {/* Upload Button */}
+          {/* Add Contest/Mock Button */}
           <button 
             onClick={handleUploadClick}
             className="flex items-center gap-1 px-2.5 py-1 bg-accentCyan/10 hover:bg-accentCyan border border-accentCyan/20 hover:border-accentCyan hover:text-darkBg text-accentCyan text-[11px] font-semibold rounded-lg transition-all cursor-pointer h-7"
           >
             <CloudUpload className="w-3 h-3" />
-            <span>Upload JSON</span>
+            <span>Add Contest/Mock</span>
           </button>
           <input
             type="file"
@@ -1632,7 +1772,7 @@ export default function App() {
           <div className="w-full max-w-lg bg-panelBgSolid border border-panelBorder rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="bg-headerBg px-5 py-3.5 flex justify-between items-center border-b border-panelBorder">
-              <h2 className="text-sm font-extrabold text-textPrimary uppercase tracking-wider">Upload &amp; Configure Contest</h2>
+              <h2 className="text-sm font-extrabold text-textPrimary uppercase tracking-wider">Add Assessment (Contest or AI Mock)</h2>
               <button
                 onClick={() => setUploadModal(prev => ({ ...prev, isOpen: false }))}
                 className="text-textSecondary hover:text-textPrimary transition-colors cursor-pointer"
@@ -1641,80 +1781,98 @@ export default function App() {
               </button>
             </div>
 
-            <div className="p-5 flex flex-col gap-3 max-h-[80vh] overflow-y-auto">
+            {/* Source Toggle Tabs */}
+            <div className="flex border-b border-panelBorder bg-headerBg/40 p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => setUploadModal(prev => ({ ...prev, syncSource: 'metabase' }))}
+                className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all rounded-lg cursor-pointer flex items-center justify-center gap-1.5 ${
+                  uploadModal.syncSource === 'metabase' 
+                    ? 'bg-accentCyan text-darkBg shadow-glow' 
+                    : 'text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceInput'
+                }`}
+              >
+                <Database className="w-3.5 h-3.5" />
+                <span>Sync from Metabase</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadModal(prev => ({ ...prev, syncSource: 'local' }))}
+                className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all rounded-lg cursor-pointer flex items-center justify-center gap-1.5 ${
+                  uploadModal.syncSource === 'local' 
+                    ? 'bg-accentCyan text-darkBg shadow-glow' 
+                    : 'text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceInput'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload JSON Files</span>
+              </button>
+            </div>
 
-              {/* File name pill */}
-              <div className="flex items-center gap-2 bg-bgSurfaceInput border border-panelBorder px-3 py-2 rounded-lg">
-                <Upload className="w-3.5 h-3.5 text-accentCyan shrink-0" />
-                <span className="text-xs font-mono text-textPrimary truncate">{uploadModal.fileName}</span>
-              </div>
-
-              {/* Row 1: Type + Mode toggle */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Assessment Type */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Type</label>
-                  <select
-                    value={uploadModal.uploadType}
-                    onChange={(e) => setUploadModal(prev => ({ ...prev, uploadType: e.target.value }))}
-                    className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
-                  >
-                    <option value="oa" className="bg-panelBgSolid text-textPrimary">📝 OA Submissions</option>
-                    <option value="mock" className="bg-panelBgSolid text-textPrimary">🤖 AI Mock Results</option>
-                  </select>
-                </div>
-
-                {/* Create / Update toggle */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Mode</label>
-                  <div className="flex gap-1.5 p-0.5 bg-bgSurfaceInput border border-panelBorder rounded-lg h-[34px]">
-                    <button
-                      type="button"
-                      onClick={() => setUploadModal(prev => ({ ...prev, isUpdateMode: false, contestName: prev.defaultContestName || '' }))}
-                      className={`flex-1 text-[10px] font-extrabold rounded uppercase tracking-wider transition-all cursor-pointer ${!uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg' : 'text-textSecondary hover:text-textPrimary'}`}
-                    >🆕 New</button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const fc = contestsList.filter(c => uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)[0];
-                        setUploadModal(prev => ({ ...prev, isUpdateMode: true, selectedContestKey: fc?.key || '', contestName: fc?.contest_name || '', programSelect: fc?.program_name || 'General Contests' }));
-                      }}
-                      className={`flex-1 text-[10px] font-extrabold rounded uppercase tracking-wider transition-all cursor-pointer ${uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg' : 'text-textSecondary hover:text-textPrimary'}`}
-                    >🔄 Update</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2: Contest name / select + Program */}
-              <div className="grid grid-cols-2 gap-3">
-                {uploadModal.isUpdateMode ? (
-                  <div className="flex flex-col gap-1 col-span-2">
-                    <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Contest to Update</label>
+            <div className="p-5 flex flex-col gap-3.5 max-h-[70vh] overflow-y-auto">
+              {uploadModal.syncSource === 'metabase' ? (
+                <>
+                  {/* Row 1: Type Selection */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Assessment Type</label>
                     <select
-                      value={uploadModal.selectedContestKey}
-                      onChange={(e) => {
-                        const sel = contestsList.find(c => c.key === e.target.value);
-                        if (sel) setUploadModal(prev => ({ ...prev, selectedContestKey: sel.key, contestName: sel.contest_name, programSelect: sel.program_name || 'General Contests' }));
-                      }}
-                      className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer"
+                      value={uploadModal.uploadType}
+                      onChange={(e) => setUploadModal(prev => ({ ...prev, uploadType: e.target.value }))}
+                      className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
                     >
-                      {contestsForUploadType(uploadModal.uploadType).map(c => (
-                        <option key={c.key} value={c.key} className="bg-panelBgSolid">{c.contest_name} ({c.program_name || 'General'})</option>
-                      ))}
-                      {contestsForUploadType(uploadModal.uploadType).length === 0 && (
-                        <option value="" disabled className="text-textMuted">No existing matches</option>
-                      )}
+                      <option value="oa" className="bg-panelBgSolid text-textPrimary">📝 OA Submissions &amp; Problems</option>
+                      <option value="mock" className="bg-panelBgSolid text-textPrimary">🤖 AI Mock Results</option>
                     </select>
                   </div>
-                ) : (
-                  <>
+
+                  {/* Row 2: Assignment ID or Course ID & Metabase Session Token */}
+                  <div className="grid grid-cols-2 gap-3.5">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Contest Name</label>
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">
+                        {uploadModal.uploadType === 'oa' ? 'Assignment ID' : 'Course ID'}
+                      </label>
+                      <input
+                        type="text"
+                        value={uploadModal.uploadType === 'oa' ? uploadModal.assignmentId : uploadModal.courseId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (uploadModal.uploadType === 'oa') {
+                            setUploadModal(prev => ({ ...prev, assignmentId: val }));
+                          } else {
+                            setUploadModal(prev => ({ ...prev, courseId: val }));
+                          }
+                        }}
+                        placeholder={uploadModal.uploadType === 'oa' ? "e.g. 4534" : "e.g. 9146"}
+                        className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none font-mono"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider flex items-center justify-between">
+                        <span>Metabase Session Cookie</span>
+                        <span className="text-[9px] text-accentCyan normal-case font-bold">metabase.SESSION</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={uploadModal.metabaseSession}
+                        onChange={(e) => setUploadModal(prev => ({ ...prev, metabaseSession: e.target.value }))}
+                        placeholder="Paste session token..."
+                        className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 3: Contest Name & Program */}
+                  <div className="grid grid-cols-2 gap-3.5">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">
+                        Contest Name <span className="text-textMuted font-medium normal-case">(optional)</span>
+                      </label>
                       <input
                         type="text"
                         value={uploadModal.contestName}
                         onChange={(e) => setUploadModal(prev => ({ ...prev, contestName: e.target.value }))}
-                        placeholder="e.g. OA Contest 5"
+                        placeholder={uploadModal.uploadType === 'oa' ? "e.g. Assignment 4534" : "e.g. Course 9146 Mock"}
                         className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none"
                       />
                     </div>
@@ -1730,89 +1888,263 @@ export default function App() {
                         <option value="__NEW__" className="bg-panelBgSolid">➕ New Program…</option>
                       </select>
                     </div>
-                  </>
-                )}
-              </div>
+                  </div>
 
-              {/* New program input */}
-              {uploadModal.programSelect === '__NEW__' && (
-                <div className="flex flex-col gap-1 animate-in slide-in-from-top-2 duration-150">
-                  <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">New Program Name</label>
-                  <input
-                    type="text"
-                    value={uploadModal.newProgramName}
-                    onChange={(e) => setUploadModal(prev => ({ ...prev, newProgramName: e.target.value }))}
-                    placeholder="e.g. Winter Bootcamp 2026"
-                    className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none"
-                  />
-                </div>
-              )}
+                  {/* New program input */}
+                  {uploadModal.programSelect === '__NEW__' && (
+                    <div className="flex flex-col gap-1 animate-in slide-in-from-top-2 duration-150">
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">New Program Name</label>
+                      <input
+                        type="text"
+                        value={uploadModal.newProgramName}
+                        onChange={(e) => setUploadModal(prev => ({ ...prev, newProgramName: e.target.value }))}
+                        placeholder="e.g. Winter Bootcamp 2026"
+                        className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none"
+                      />
+                    </div>
+                  )}
 
-              {/* OA-only compact options */}
-              {uploadModal.uploadType === 'oa' && (
-                <div className="bg-bgSurfaceInput border border-panelBorder rounded-xl p-3 flex flex-col gap-2.5">
-                  <div className="grid grid-cols-2 gap-3 items-end">
-                    {/* Problems JSON */}
+                  {/* OA-only options for Metabase */}
+                  {uploadModal.uploadType === 'oa' && (
+                    <div className="bg-bgSurfaceInput border border-panelBorder rounded-xl p-3 flex flex-col gap-2.5">
+                      <div className="grid grid-cols-2 gap-3 items-end">
+                        {/* AI Critique toggle */}
+                        <div className="flex flex-col gap-1 col-span-2">
+                          <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">AI Critique Pipeline</label>
+                          <label className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all select-none ${runAiUpload && !(user.role === 'faculty' && !openaiKey) ? 'border-accentCyan/40 bg-accentCyan/5' : 'border-panelBorder bg-bgSurfaceActive'} ${user.role === 'faculty' && !openaiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={runAiUpload}
+                              disabled={user.role === 'faculty' && !openaiKey}
+                              onChange={(e) => setRunAiUpload(e.target.checked)}
+                              className="w-3.5 h-3.5 rounded accent-accentCyan disabled:cursor-not-allowed"
+                            />
+                            <span className={`text-xs font-bold ${runAiUpload && !(user.role === 'faculty' && !openaiKey) ? 'text-accentCyan' : 'text-textSecondary'}`}>
+                              {runAiUpload ? 'Run AI Analysis (Fetches OpenAI Critiques)' : 'Skip AI Analysis (Ingest Metrics Only)'}
+                            </span>
+                          </label>
+                          {user.role === 'faculty' && !openaiKey
+                            ? <span className="text-[10px] text-accentOrange font-semibold">⚠️ Set OpenAI API Key in Settings</span>
+                            : user.role === 'admin'
+                              ? <span className="text-[10px] text-textMuted">Uses server configuration API key</span>
+                              : null}
+                        </div>
+                      </div>
+
+                      {/* Cost limit row */}
+                      {runAiUpload && (
+                        <div className="flex items-center gap-2.5 pt-2 border-t border-panelBorder/40 animate-in slide-in-from-top-2 duration-150">
+                          <span className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider whitespace-nowrap">Cost Limit</span>
+                          <span className="text-sm font-semibold text-accentCyan">$</span>
+                          <input
+                            type="number"
+                            value={uploadModal.costLimit}
+                            onChange={(e) => setUploadModal(prev => ({ ...prev, costLimit: parseFloat(e.target.value) || 0.50 }))}
+                            step="0.05" min="0.01"
+                            className="w-20 bg-bgSurfaceActive border border-panelBorder px-2.5 py-1.5 text-sm rounded outline-none text-textPrimary font-mono font-bold focus:border-accentCyan"
+                          />
+                          <span className="text-[10px] text-textMuted">Pauses &amp; saves if exceeded</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* File selector button */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">JSON File</label>
+                    {uploadModal.fileName ? (
+                      <div className="flex items-center justify-between gap-2 bg-bgSurfaceInput border border-panelBorder px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-2 truncate">
+                          <Upload className="w-3.5 h-3.5 text-accentCyan shrink-0" />
+                          <span className="text-xs font-mono text-textPrimary truncate">{uploadModal.fileName}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setUploadModal(prev => ({ ...prev, fileName: '', fileText: '' }))}
+                          className="text-[10px] font-extrabold text-accentRose uppercase hover:underline cursor-pointer"
+                        >Clear</button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex flex-col items-center justify-center border border-dashed border-panelBorder hover:border-accentCyan/60 bg-bgSurfaceInput rounded-lg p-6 cursor-pointer hover:bg-bgSurfaceActive transition-all w-full text-center"
+                      >
+                        <Upload className="w-6 h-6 text-accentCyan/40 mb-1" />
+                        <span className="text-xs font-bold text-textPrimary">Browse Submissions/Mock JSON File</span>
+                        <span className="text-[10px] text-textMuted mt-0.5">Accepts playground contest or AI Mock dumps</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Row 1: Type + Mode toggle */}
+                  <div className="grid grid-cols-2 gap-3.5">
+                    {/* Assessment Type */}
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">
-                        Problems JSON <span className="text-textMuted font-medium normal-case">(optional)</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 px-2.5 py-2 bg-bgSurfaceActive border border-panelBorder hover:border-accentCyan/60 rounded-lg cursor-pointer transition-all group">
-                        <Upload className="w-3 h-3 text-accentCyan/50 group-hover:text-accentCyan shrink-0" />
-                        <span className="text-[11px] text-textMuted group-hover:text-textSecondary truncate">
-                          {uploadModal.problemsFileName ? <span className="text-accentCyan">✓ {uploadModal.problemsFileName}</span> : 'Browse problem.json'}
-                        </span>
-                        <input type="file" accept=".json" className="hidden"
-                          onChange={async (e) => {
-                            if (e.target.files.length > 0) {
-                              const file = e.target.files[0];
-                              const text = await file.text();
-                              setUploadModal(prev => ({ ...prev, problemsFileName: file.name, problemsFileText: text }));
-                            }
-                          }}
-                        />
-                      </label>
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Type</label>
+                      <select
+                        value={uploadModal.uploadType}
+                        onChange={(e) => setUploadModal(prev => ({ ...prev, uploadType: e.target.value }))}
+                        className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer transition-all"
+                      >
+                        <option value="oa" className="bg-panelBgSolid text-textPrimary">📝 OA Submissions</option>
+                        <option value="mock" className="bg-panelBgSolid text-textPrimary">🤖 AI Mock Results</option>
+                      </select>
                     </div>
 
-                    {/* AI Critique toggle */}
+                    {/* Create / Update toggle */}
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">AI Critique</label>
-                      <label className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all select-none ${runAiUpload && !(user.role === 'faculty' && !openaiKey) ? 'border-accentCyan/40 bg-accentCyan/5' : 'border-panelBorder bg-bgSurfaceActive'} ${user.role === 'faculty' && !openaiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                        <input
-                          type="checkbox"
-                          checked={runAiUpload}
-                          disabled={user.role === 'faculty' && !openaiKey}
-                          onChange={(e) => setRunAiUpload(e.target.checked)}
-                          className="w-3.5 h-3.5 rounded accent-accentCyan disabled:cursor-not-allowed"
-                        />
-                        <span className={`text-xs font-bold ${runAiUpload && !(user.role === 'faculty' && !openaiKey) ? 'text-accentCyan' : 'text-textSecondary'}`}>
-                          {runAiUpload ? 'Enabled' : 'Skip AI'}
-                        </span>
-                      </label>
-                      {user.role === 'faculty' && !openaiKey
-                        ? <span className="text-[10px] text-accentOrange font-semibold">⚠️ Set key in Settings</span>
-                        : user.role === 'admin'
-                          ? <span className="text-[10px] text-textMuted">Uses server key</span>
-                          : null}
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Mode</label>
+                      <div className="flex gap-1.5 p-0.5 bg-bgSurfaceInput border border-panelBorder rounded-lg h-[34px]">
+                        <button
+                          type="button"
+                          onClick={() => setUploadModal(prev => ({ ...prev, isUpdateMode: false, contestName: prev.defaultContestName || '' }))}
+                          className={`flex-1 text-[10px] font-extrabold rounded uppercase tracking-wider transition-all cursor-pointer ${!uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg' : 'text-textSecondary hover:text-textPrimary'}`}
+                        >🆕 New</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const fc = contestsList.filter(c => uploadModal.uploadType === 'mock' ? c.is_mock : !c.is_mock)[0];
+                            setUploadModal(prev => ({ ...prev, isUpdateMode: true, selectedContestKey: fc?.key || '', contestName: fc?.contest_name || '', programSelect: fc?.program_name || 'General Contests' }));
+                          }}
+                          className={`flex-1 text-[10px] font-extrabold rounded uppercase tracking-wider transition-all cursor-pointer ${uploadModal.isUpdateMode ? 'bg-accentCyan text-darkBg' : 'text-textSecondary hover:text-textPrimary'}`}
+                        >🔄 Update</button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Cost limit row */}
-                  {runAiUpload && (
-                    <div className="flex items-center gap-2.5 pt-2 border-t border-panelBorder/40 animate-in slide-in-from-top-2 duration-150">
-                      <span className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider whitespace-nowrap">Cost Limit</span>
-                      <span className="text-sm font-semibold text-accentCyan">$</span>
+                  {/* Row 2: Contest name / select + Program */}
+                  <div className="grid grid-cols-2 gap-3.5">
+                    {uploadModal.isUpdateMode ? (
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Contest to Update</label>
+                        <select
+                          value={uploadModal.selectedContestKey}
+                          onChange={(e) => {
+                            const sel = contestsList.find(c => c.key === e.target.value);
+                            if (sel) setUploadModal(prev => ({ ...prev, selectedContestKey: sel.key, contestName: sel.contest_name, programSelect: sel.program_name || 'General Contests' }));
+                          }}
+                          className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer"
+                        >
+                          {contestsForUploadType(uploadModal.uploadType).map(c => (
+                            <option key={c.key} value={c.key} className="bg-panelBgSolid">{c.contest_name} ({c.program_name || 'General'})</option>
+                          ))}
+                          {contestsForUploadType(uploadModal.uploadType).length === 0 && (
+                            <option value="" disabled className="text-textMuted">No existing matches</option>
+                          )}
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Contest Name</label>
+                          <input
+                            type="text"
+                            value={uploadModal.contestName}
+                            onChange={(e) => setUploadModal(prev => ({ ...prev, contestName: e.target.value }))}
+                            placeholder="e.g. OA Contest 5"
+                            className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">Program</label>
+                          <select
+                            value={uploadModal.programSelect}
+                            onChange={(e) => setUploadModal(prev => ({ ...prev, programSelect: e.target.value }))}
+                            className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none cursor-pointer"
+                          >
+                            {uniquePrograms.filter(p => p !== 'All').map(p => <option key={p} value={p} className="bg-panelBgSolid">{p}</option>)}
+                            {!uniquePrograms.includes('General Contests') && <option value="General Contests" className="bg-panelBgSolid">General Contests</option>}
+                            <option value="__NEW__" className="bg-panelBgSolid">➕ New Program…</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* New program input */}
+                  {uploadModal.programSelect === '__NEW__' && (
+                    <div className="flex flex-col gap-1 animate-in slide-in-from-top-2 duration-150">
+                      <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">New Program Name</label>
                       <input
-                        type="number"
-                        value={uploadModal.costLimit}
-                        onChange={(e) => setUploadModal(prev => ({ ...prev, costLimit: parseFloat(e.target.value) || 0.50 }))}
-                        step="0.05" min="0.01"
-                        className="w-20 bg-bgSurfaceActive border border-panelBorder px-2.5 py-1.5 text-sm rounded outline-none text-textPrimary font-mono font-bold focus:border-accentCyan"
+                        type="text"
+                        value={uploadModal.newProgramName}
+                        onChange={(e) => setUploadModal(prev => ({ ...prev, newProgramName: e.target.value }))}
+                        placeholder="e.g. Winter Bootcamp 2026"
+                        className="w-full px-2.5 py-2 text-xs bg-bgSurfaceInput border border-panelBorder focus:border-accentCyan rounded-lg text-textPrimary outline-none"
                       />
-                      <span className="text-[10px] text-textMuted">Pauses &amp; saves if exceeded</span>
                     </div>
                   )}
-                </div>
+
+                  {/* OA-only compact options */}
+                  {uploadModal.uploadType === 'oa' && (
+                    <div className="bg-bgSurfaceInput border border-panelBorder rounded-xl p-3 flex flex-col gap-2.5">
+                      <div className="grid grid-cols-2 gap-3 items-end">
+                        {/* Problems JSON */}
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">
+                            Problems JSON <span className="text-textMuted font-medium normal-case">(optional)</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 px-2.5 py-2 bg-bgSurfaceActive border border-panelBorder hover:border-accentCyan/60 rounded-lg cursor-pointer transition-all group">
+                            <Upload className="w-3 h-3 text-accentCyan/50 group-hover:text-accentCyan shrink-0" />
+                            <span className="text-[11px] text-textMuted group-hover:text-textSecondary truncate">
+                              {uploadModal.problemsFileName ? <span className="text-accentCyan">✓ {uploadModal.problemsFileName}</span> : 'Browse problem.json'}
+                            </span>
+                            <input type="file" accept=".json" className="hidden"
+                              onChange={async (e) => {
+                                if (e.target.files.length > 0) {
+                                  const file = e.target.files[0];
+                                  const text = await file.text();
+                                  setUploadModal(prev => ({ ...prev, problemsFileName: file.name, problemsFileText: text }));
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* AI Critique toggle */}
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider">AI Critique</label>
+                          <label className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all select-none ${runAiUpload && !(user.role === 'faculty' && !openaiKey) ? 'border-accentCyan/40 bg-accentCyan/5' : 'border-panelBorder bg-bgSurfaceActive'} ${user.role === 'faculty' && !openaiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={runAiUpload}
+                              disabled={user.role === 'faculty' && !openaiKey}
+                              onChange={(e) => setRunAiUpload(e.target.checked)}
+                              className="w-3.5 h-3.5 rounded accent-accentCyan disabled:cursor-not-allowed"
+                            />
+                            <span className={`text-xs font-bold ${runAiUpload && !(user.role === 'faculty' && !openaiKey) ? 'text-accentCyan' : 'text-textSecondary'}`}>
+                              {runAiUpload ? 'Enabled' : 'Skip AI'}
+                            </span>
+                          </label>
+                          {user.role === 'faculty' && !openaiKey
+                            ? <span className="text-[10px] text-accentOrange font-semibold">⚠️ Set key in Settings</span>
+                            : user.role === 'admin'
+                              ? <span className="text-[10px] text-textMuted">Uses server key</span>
+                              : null}
+                        </div>
+                      </div>
+
+                      {/* Cost limit row */}
+                      {runAiUpload && (
+                        <div className="flex items-center gap-2.5 pt-2 border-t border-panelBorder/40 animate-in slide-in-from-top-2 duration-150">
+                          <span className="text-[10px] font-extrabold text-textSecondary uppercase tracking-wider whitespace-nowrap">Cost Limit</span>
+                          <span className="text-sm font-semibold text-accentCyan">$</span>
+                          <input
+                            type="number"
+                            value={uploadModal.costLimit}
+                            onChange={(e) => setUploadModal(prev => ({ ...prev, costLimit: parseFloat(e.target.value) || 0.50 }))}
+                            step="0.05" min="0.01"
+                            className="w-20 bg-bgSurfaceActive border border-panelBorder px-2.5 py-1.5 text-sm rounded outline-none text-textPrimary font-mono font-bold focus:border-accentCyan"
+                          />
+                          <span className="text-[10px] text-textMuted">Pauses &amp; saves if exceeded</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -1829,7 +2161,7 @@ export default function App() {
                 className="flex items-center gap-1.5 px-5 py-2 bg-accentCyan hover:bg-accentCyan/80 text-darkBg rounded-lg text-sm font-bold shadow-glow transition-all cursor-pointer"
               >
                 <BarChart2 className="w-4 h-4" />
-                <span>Start Analysis</span>
+                <span>Start Ingestion</span>
               </button>
             </div>
           </div>

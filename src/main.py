@@ -83,6 +83,7 @@ async def get_current_user(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src import parser, analyzer, llm_client
+from src.metabase_client import MetabaseClient, transform_metabase_response, transform_submissions_response, transform_mock_response
 
 DEFAULT_REPORT_DIR = "reports"
 DEFAULT_SUBMISSIONS_DIR = "reports/correct_submissions"
@@ -1198,6 +1199,204 @@ async def upload_contest(
     except Exception as e:
         print(f"Error handling file upload: {e}")
         raise HTTPException(status_code=500, detail=f"Server error during upload: {str(e)}")
+
+@app.post("/api/metabase/sync-contest")
+async def sync_contest_from_metabase(
+    assignment_id: str = Query(...),
+    contest_name: str = Query(None),
+    program_name: str = Query(None),
+    cost_limit: float = Query(0.50),
+    run_ai: bool = Query(True),
+    x_metabase_session: str = Header(..., alias="X-Metabase-Session"),
+    x_openai_api_key: str = Header(None),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["role"] not in ("admin", "faculty"):
+        raise HTTPException(status_code=403, detail="Permission denied.")
+    
+    clean_id = assignment_id.replace(",", "").strip()
+    if not clean_id.isdigit():
+        raise HTTPException(status_code=400, detail="Assignment ID must be a numeric integer.")
+        
+    try:
+        mb = MetabaseClient(session_token=x_metabase_session)
+        
+        # 1. Fetch problems metadata (Card 11286)
+        print(f"Fetching problems metadata for assignment {clean_id} from Metabase...")
+        raw_problems = mb.query_card(11286, parameters={"assignment_id": clean_id})
+        problems_meta = transform_metabase_response(raw_problems)
+        
+        # 2. Fetch submissions (Card 8751)
+        print(f"Fetching submissions for assignment {clean_id} from Metabase...")
+        raw_submissions = mb.query_card(8751, parameters={"assignment_id": clean_id})
+        submissions_data = transform_submissions_response(raw_submissions)
+        
+        if not submissions_data:
+            raise Exception("No student submissions found in Metabase for this Assignment ID.")
+            
+        # 3. Save files using assignment_id as file name/contest_key
+        os.makedirs("data/contests", exist_ok=True)
+        problems_path = os.path.join("data/contests", f"{clean_id}_problems.json")
+        submissions_path = os.path.join("data/contests", f"{clean_id}.json")
+        
+        with open(problems_path, "w") as f:
+            json.dump(problems_meta, f, indent=2)
+            
+        with open(submissions_path, "w") as f:
+            json.dump(submissions_data, f, indent=2)
+            
+        # 4. Sync to S3 if configured
+        from src.s3_client import S3SyncClient
+        s3 = S3SyncClient()
+        if s3.is_configured():
+            s3.upload_file(problems_path, f"data/contests/{clean_id}_problems.json")
+            s3.upload_file(submissions_path, f"data/contests/{clean_id}.json")
+            
+        # 5. Determine AI settings
+        if current_user["role"] == "admin":
+            has_key = os.environ.get("OPENAI_API_KEY") is not None
+            dry_run = not (run_ai and has_key)
+            custom_api_key = None
+        else:  # faculty
+            has_key = x_openai_api_key is not None
+            dry_run = not (run_ai and has_key)
+            custom_api_key = x_openai_api_key if has_key else None
+            
+        # 6. Trigger background analysis pipeline
+        contest_key, already_active = start_analysis_in_background(
+            submissions_path,
+            dry_run=dry_run,
+            contest_name=contest_name or f"Assignment {clean_id}",
+            program_name=program_name,
+            cost_limit=cost_limit,
+            custom_api_key=custom_api_key
+        )
+        
+        msg = "Analysis is already active/queued." if already_active else "Contest synced successfully. AI analysis has started in the background."
+        return {
+            "success": True,
+            "contest_key": contest_key,
+            "message": msg
+        }
+        
+    except Exception as e:
+        print(f"Error during Metabase contest sync: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/metabase/sync-mock")
+async def sync_mock_from_metabase(
+    course_id: str = Query(...),
+    contest_name: str = Query(None),
+    program_name: str = Query(None),
+    x_metabase_session: str = Header(..., alias="X-Metabase-Session"),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["role"] not in ("admin", "faculty"):
+        raise HTTPException(status_code=403, detail="Permission denied.")
+        
+    clean_id = course_id.replace(",", "").strip()
+    if not clean_id.isdigit():
+        raise HTTPException(status_code=400, detail="Course ID must be a numeric integer.")
+        
+    try:
+        mb = MetabaseClient(session_token=x_metabase_session)
+        
+        # 1. Fetch AI Mock data (Card 9146)
+        print(f"Fetching AI Mocks for course {clean_id} from Metabase...")
+        raw_mock = mb.query_card(9146, parameters={"course_id": clean_id})
+        mock_data = transform_mock_response(raw_mock)
+        
+        if not mock_data:
+            raise Exception("No AI mock records found in Metabase for this Course ID.")
+            
+        # 2. Save file using course_id as filename/contest_key
+        os.makedirs("data/contests", exist_ok=True)
+        file_path = os.path.join("data/contests", f"{clean_id}.json")
+        with open(file_path, "w") as f:
+            json.dump(mock_data, f, indent=2)
+            
+        # 3. Process mock file using standard SCFA AI Mock parser & summarizer logic
+        attempts = parser.parse_mock_file(file_path)
+        student_groups = {}
+        for att in attempts:
+            email = att["email"]
+            if email not in student_groups:
+                student_groups[email] = []
+            student_groups[email].append(att)
+            
+        students_summary = {}
+        for email, s_attempts in student_groups.items():
+            latest_attempt = s_attempts[-1]
+            valid_ratings = [a["rating"] for a in s_attempts if a["rating"] is not None]
+            best_rating = max(valid_ratings) if valid_ratings else None
+            
+            serialized_attempts = []
+            for a in s_attempts:
+                serialized_attempts.append({
+                    "one_to_one_id": a["one_to_one_id"],
+                    "o2o_hash": a["o2o_hash"],
+                    "o2o_title": a["o2o_title"],
+                    "start_timestamp": a["start_timestamp_str"],
+                    "rating": a["rating"],
+                    "communication_score": a["communication_score"],
+                    "hr_report_link": a["hr_report_link"],
+                    "verdict": a["verdict"]
+                })
+                
+            students_summary[email] = {
+                "user_id": latest_attempt["user_id"],
+                "email": email,
+                "first_name": latest_attempt["first_name"],
+                "last_name": latest_attempt["last_name"],
+                "latest_rating": latest_attempt["rating"],
+                "latest_communication_score": latest_attempt["communication_score"],
+                "latest_hr_report_link": latest_attempt["hr_report_link"],
+                "latest_verdict": latest_attempt["verdict"],
+                "best_rating": best_rating,
+                "attempts": serialized_attempts
+            }
+            
+        if not contest_name and attempts:
+            contest_name = attempts[0]["o2o_title"]
+        if not contest_name:
+            contest_name = f"AI Mocks Course {clean_id}"
+            
+        report_data = {
+            "metadata": {
+                "contest_key": clean_id,
+                "contest_name": contest_name,
+                "program_name": program_name or "General Mocks",
+                "source_file": f"{clean_id}.json",
+                "analyzed_at": datetime.now().isoformat(),
+                "total_students": len(students_summary),
+                "total_attempts": len(attempts),
+                "is_mock": True
+            },
+            "students": students_summary
+        }
+        
+        output_dir = os.path.join(DEFAULT_REPORT_DIR, "contests", clean_id)
+        os.makedirs(output_dir, exist_ok=True)
+        summary_path = os.path.join(output_dir, "summary.json")
+        with open(summary_path, "w") as f:
+            json.dump(report_data, f, indent=2)
+            
+        # 4. Sync to S3 if configured
+        from src.s3_client import S3SyncClient
+        s3 = S3SyncClient()
+        if s3.is_configured():
+            s3.upload_file(file_path, f"data/contests/{clean_id}.json")
+            s3.upload_file(summary_path, f"reports/contests/{clean_id}/summary.json")
+            
+        return {
+            "success": True,
+            "contest_key": clean_id,
+            "message": "AI Mock data synced and processed successfully."
+        }
+        
+    except Exception as e:
+        print(f"Error during Metabase mock sync: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/reanalyze")
 def reanalyze_contest(
