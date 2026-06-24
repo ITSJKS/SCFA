@@ -37,16 +37,46 @@ class MetabaseClient:
         if not self.authenticate():
             raise Exception("Metabase client is not authenticated. Please configure session_token or credentials.")
             
+        # Fetch card metadata to resolve dynamic parameter types and targets
+        tag_types = {}
+        tag_targets = {}
+        try:
+            card_url = f"{self.base_url}/api/card/{card_id}"
+            card_resp = self.session.get(card_url)
+            if card_resp.status_code == 200:
+                card_data = card_resp.json()
+                stages = card_data.get("dataset_query", {}).get("stages", [])
+                if stages:
+                    tags = stages[0].get("template-tags", {})
+                    for tag_name, tag_info in tags.items():
+                        t_type = tag_info.get("type", "category")
+                        if t_type == "dimension":
+                            tag_types[tag_name] = tag_info.get("widget-type", "category")
+                            tag_targets[tag_name] = "dimension"
+                        else:
+                            tag_types[tag_name] = t_type
+                            tag_targets[tag_name] = "variable"
+        except Exception as e:
+            print(f"Warning: could not resolve parameter types from card metadata: {e}")
+
         url = f"{self.base_url}/api/card/{card_id}/query"
         payload = {}
         
         if parameters:
             mb_params = []
             for k, v in parameters.items():
+                p_type = tag_types.get(k, "category")
+                p_target = tag_targets.get(k, "variable")
+                
+                # Coerce numeric values if possible (Metabase id/number params work better with ints)
+                val = v
+                if isinstance(v, str) and v.isdigit() and p_type in ("id", "number"):
+                    val = int(v)
+
                 mb_params.append({
-                    "type": "category",
-                    "target": ["variable", ["template-tag", k]],
-                    "value": v
+                    "type": p_type,
+                    "target": [p_target, ["template-tag", k]],
+                    "value": val
                 })
             payload["parameters"] = mb_params
             
@@ -55,6 +85,8 @@ class MetabaseClient:
             return resp.json()
         else:
             raise Exception(f"Query failed: {resp.status_code} {resp.text}")
+
+
 
 def clean_html_to_markdown(text):
     """Utility to strip simple HTML tags and clean up formatting for LLM usage."""
